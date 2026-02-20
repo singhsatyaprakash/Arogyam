@@ -7,7 +7,7 @@ const ChatBookingOnly = ({ doctor, patient, onProceed }) => {
   const chatFee = useMemo(() => {
     return Number(doctor?.consultationFee?.chat ?? 0);
   }, [doctor]);
-
+  // console.log("ChatBookingOnly - doctor:", doctor, "patient:", patient, "chatFee:", chatFee);
   return (
     <div className="mt-5 bg-white rounded-xl p-5 shadow-sm border">
       {/* Header */}
@@ -17,8 +17,8 @@ const ChatBookingOnly = ({ doctor, patient, onProceed }) => {
             <MdChat className="text-green-600" />
             Chat Consultation
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            After payment, chat will be active for <span className="font-semibold">10 days</span>.
+          <p className="text-sm text-blue-500 mt-1">
+            After payment, chat will be active for <span className="font-semibold text-green-600">10 days</span>.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ const ChatBookingOnly = ({ doctor, patient, onProceed }) => {
             {patient?.name || patient?.fullName || "Patient"}
           </p>
           <p className="text-sm text-gray-600">
-            ID: <span className="font-medium">{patient?._id || "N/A"}</span>
+            Age: <span className="font-medium">{patient?.age || "N/A"}</span>
           </p>
 
           <p className="text-xs text-gray-500 mt-2">
@@ -84,7 +84,7 @@ const ChatBookingOnly = ({ doctor, patient, onProceed }) => {
       {/* Action */}
       <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t pt-4">
         <div className="text-xs text-gray-500">
-          ✅ Chat access: <span className="font-semibold text-gray-700">10 days</span> after payment
+          Chat access: <span className="font-semibold text-gray-700">10 days</span> after payment
         </div>
 
         <button

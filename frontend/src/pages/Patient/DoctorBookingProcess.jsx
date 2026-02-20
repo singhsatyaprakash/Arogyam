@@ -4,8 +4,8 @@ import axios from "axios";
 import { MdChat, MdCall, MdVideocam, MdStar } from "react-icons/md";
 import PatientContext from "../../contexts/PatientContext";
 import PatientNavbar from "../../patientComponent/PatientNavbar";
-import noProfile from "../../assets/noProfile.webp"; // ✅ fixed
-import ChatBookingOnly from "../../patientComponent/ChatBookingOnly"; // ✅ NEW
+import noProfile from "../../assets/noProfile.webp";
+import ChatBookingOnly from "../../patientComponent/ChatBookingOnly";
 
 const DoctorBookingProcess = () => {
   const { doctorId } = useParams();
@@ -16,7 +16,6 @@ const DoctorBookingProcess = () => {
   const [doctor, setDoctor] = useState(location.state?.doctor || null);
   const [loading, setLoading] = useState(!doctor);
 
-  // ✅ Keep in-person option also
   const [mode, setMode] = useState("video");
 
   const [message, setMessage] = useState("");
@@ -46,7 +45,7 @@ const DoctorBookingProcess = () => {
 
   const [selectedDate, setSelectedDate] = useState(() => getLocalYYYYMMDD());
 
-  // ✅ availability states (ONLY for voice/video/in-person)
+  //availability states (ONLY for voice/video/in-person)
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [availability, setAvailability] = useState({
@@ -68,7 +67,7 @@ const DoctorBookingProcess = () => {
     return new Set(times);
   }, [availability?.bookedSlots]);
 
-  // ✅ compute all times for the day
+  //compute all times for the day
   const allTimes = useMemo(() => {
     const duration =
       Number(availability?.slotDurationMinutes) ||
@@ -164,7 +163,6 @@ const DoctorBookingProcess = () => {
     return m;
   }, [availability?.slots]);
 
-  // ✅ Load Doctor
   useEffect(() => {
     if (doctor) return;
     setLoading(true);
@@ -203,12 +201,10 @@ const DoctorBookingProcess = () => {
     };
   }, [doctor, doctorId]);
 
-  // ✅ Fetch availability ONLY when mode != chat
   useEffect(() => {
     const docId = doctor?._id || doctorId;
     if (!docId || !selectedDate || !mode) return;
 
-    // ✅ IMPORTANT: don't call slot API for chat
     if (mode === "chat") return;
 
     let cancelled = false;
@@ -422,7 +418,7 @@ const DoctorBookingProcess = () => {
                 onProceed={(note) => {
                   const fee = Number(doctor?.consultationFee?.chat ?? 0);
 
-                  navigate("/patient/payment", {
+                  navigate("/patient/chat-payment", {
                     state: {
                       bookingType: "CHAT",
                       doctorId: doctor?._id || doctorId,

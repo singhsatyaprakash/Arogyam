@@ -7,7 +7,6 @@ import DoctorRegister from "./pages/Doctor/DoctorRegister";
 import PatientDashboard from "./pages/Patient/PatientDashboard";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard";
 import Appointments from "./pages/Doctor/Appointments";
-import PatientChats from "./pages/Doctor/PatientChats";
 import OnePatientChat from "./pages/Doctor/OnePatientChat";
 import VideoSessionManagement from "./pages/Doctor/VideoSessionManagement";
 import VideoCall from "./doctorComponent/VideoCall";
@@ -18,139 +17,147 @@ import ShareIdeas from "./pages/Doctor/ShareIdeas";
 import { DoctorProvider } from "./contexts/DoctorContext";
 import DoctorProtectedWrapper from "./ProtectWrapper/DoctorProtectedWrapper";
 import { PatientProvider } from "./contexts/PatientContext";
+import { SocketProvider } from "./contexts/SocketContext"; 
 import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
 import Settings from "./pages/Doctor/Settings";
 import AppointmentBooking from "./pages/Patient/AppointmentBooking";
-import DoctorBookingProcess from "./pages/Patient/DoctorBookingProcess"; // added
+import DoctorBookingProcess from "./pages/Patient/DoctorBookingProcess";
 import VerifyEmailPage from "./component/VerifyEmailPage";
-import Payment from "./component/Payment"; // NEW
+import Payment from "./component/Payment";
 import BookedAppointment from "./pages/Patient/BookedAppointment";
-import PatientChatsPage from "./pages/Patient/PatientChats";
 import PatientVideoCall from "./pages/Patient/PatientVideoCall";
+import ChatPayment from "./component/ChatPayment";
+import ChatWithDoctor from "./pages/Patient/ChatWithDoctor";
+import ChatWithPatient from "./pages/Doctor/ChatWithPatient";
+
 
 const App = () => {
   return (
     <Router>
-      {/* provide patient context to the app */}
       <PatientProvider>
         <DoctorProvider>
-          <Routes>
-            {/* Home */}
-            <Route path="/" element={<Home />} />
-            <Route path='/verfiy-email' element={<VerifyEmailPage/>} />
+          {/* ✅ Wrap with SocketProvider after auth providers */}
+          <SocketProvider>
+            <Routes>
+              {/* Home */}
+              <Route path="/" element={<Home />} />
+              <Route path='/verfiy-email' element={<VerifyEmailPage/>} />
 
-            {/* Patient Routes */}
-            <Route path='/register/patient' element={<PatientRegister/>} />
+              {/* Patient Routes */}
+              <Route path='/register/patient' element={<PatientRegister/>} />
+              <Route
+                path='/patient/dashboard'
+                element={
+                  <PatientProtectedWrapper>
+                    <PatientDashboard />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path='/patient/appointments'
+                element={
+                  <PatientProtectedWrapper>
+                    <AppointmentBooking />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path='/patient/booked-appointment'
+                element={
+                  <PatientProtectedWrapper>
+                    <BookedAppointment />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path='/patient/doctor/:doctorId/book'
+                element={
+                  <PatientProtectedWrapper>
+                    <DoctorBookingProcess />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path='/patient/payment'
+                element={
+                  <PatientProtectedWrapper>
+                    <Payment />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path='/patient/chat-payment'
+                element={
+                  <PatientProtectedWrapper>
+                    <ChatPayment />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path="/patient/chats"
+                element={
+                  <PatientProtectedWrapper>
+                    <ChatWithDoctor />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path="/patient/video-sessions"
+                element={
+                  <PatientProtectedWrapper>
+                    <PatientVideoCall />
+                  </PatientProtectedWrapper>
+                }
+              />
+              <Route
+                path="/patient/video-call/:sessionId"
+                element={
+                  <PatientProtectedWrapper>
+                    <VideoCall />
+                  </PatientProtectedWrapper>
+                }
+              />
 
-            {/* CHANGED: no layout, protect each route directly */}
-            <Route
-              path='/patient/dashboard'
-              element={
-                <PatientProtectedWrapper>
-                  <PatientDashboard />
-                </PatientProtectedWrapper>
-              }
-            />
-            <Route
-              path='/patient/appointments'
-              element={
-                <PatientProtectedWrapper>
-                  <AppointmentBooking />
-                </PatientProtectedWrapper>
-              }
-            />
-            <Route
-              path='/patient/booked-appointment'
-              element={
-                <PatientProtectedWrapper>
-                  <BookedAppointment />
-                </PatientProtectedWrapper>
-              }
-            />
-            <Route
-              path='/patient/doctor/:doctorId/book'
-              element={
-                <PatientProtectedWrapper>
-                  <DoctorBookingProcess />
-                </PatientProtectedWrapper>
-              }
-            />
-            <Route
-              path='/patient/payment'
-              element={
-                <PatientProtectedWrapper>
-                  <Payment />
-                </PatientProtectedWrapper>
-              }
-            />
+              {/* Doctor Routes */}
+              <Route path='/register/doctor' element={<DoctorRegister/>} />
+              <Route path='/doctor/dashboard' element={
+                <DoctorProtectedWrapper><DoctorDashboard/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/appointments' element={
+                <DoctorProtectedWrapper><Appointments/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/chats' element={
+                <DoctorProtectedWrapper><ChatWithPatient/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/chat/:patientId' element={
+                <DoctorProtectedWrapper><OnePatientChat/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/video-sessions' element={
+                <DoctorProtectedWrapper><VideoSessionManagement/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/video-call/:sessionId' element={
+                <DoctorProtectedWrapper><VideoCall/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/medicines' element={
+                <DoctorProtectedWrapper><Medicines/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/notes' element={
+                <DoctorProtectedWrapper><Notes/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/case-studies' element={
+                <DoctorProtectedWrapper><CaseStudies/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/share-ideas' element={
+                <DoctorProtectedWrapper><ShareIdeas/></DoctorProtectedWrapper>
+              } />
+              <Route path='/doctor/settings' element={
+                <DoctorProtectedWrapper><Settings/></DoctorProtectedWrapper>
+              } />
 
-            {/* + Patient Chat + Video Call (prototype) */}
-            <Route
-              path="/patient/chats"
-              element={
-                <PatientProtectedWrapper>
-                  <PatientChatsPage />
-                </PatientProtectedWrapper>
-              }
-            />
-            <Route
-              path="/patient/video-sessions"
-              element={
-                <PatientProtectedWrapper>
-                  <PatientVideoCall />
-                </PatientProtectedWrapper>
-              }
-            />
-            <Route
-              path="/patient/video-call/:sessionId"
-              element={
-                <PatientProtectedWrapper>
-                  <VideoCall />
-                </PatientProtectedWrapper>
-              }
-            />
-
-            {/* Doctor Routes */}
-            <Route path='/register/doctor' element={<DoctorRegister/>} />
-
-            {/* protected doctor routes */}
-            <Route path='/doctor/dashboard' element={
-              <DoctorProtectedWrapper><DoctorDashboard/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/appointments' element={
-              <DoctorProtectedWrapper><Appointments/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/chats' element={
-              <DoctorProtectedWrapper><PatientChats/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/chat/:patientId' element={
-              <DoctorProtectedWrapper><OnePatientChat/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/video-sessions' element={
-              <DoctorProtectedWrapper><VideoSessionManagement/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/video-call/:sessionId' element={
-              <DoctorProtectedWrapper><VideoCall/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/medicines' element={
-              <DoctorProtectedWrapper><Medicines/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/notes' element={
-              <DoctorProtectedWrapper><Notes/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/case-studies' element={
-              <DoctorProtectedWrapper><CaseStudies/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/share-ideas' element={
-              <DoctorProtectedWrapper><ShareIdeas/></DoctorProtectedWrapper>
-            } />
-            <Route path='/doctor/settings' element={
-              <DoctorProtectedWrapper><Settings/></DoctorProtectedWrapper>
-            } />
-
-            {/* Not Found */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* Not Found */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SocketProvider>
         </DoctorProvider>
       </PatientProvider>
     </Router>

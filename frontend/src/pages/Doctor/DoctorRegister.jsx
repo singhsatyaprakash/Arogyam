@@ -32,7 +32,7 @@ const DoctorRegister = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // ✅ IMPORTANT
+    e.preventDefault();
     setLoading(true);
 
     try {

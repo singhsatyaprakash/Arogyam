@@ -28,7 +28,7 @@ const PatientDashboard = () => {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-800">
-              Welcome back, {patient.name?.split(" ")[0] || "Patient"} 👋
+              Welcome back, {patient.name?.split(" ")[0] || "Patient"}
             </h1>
             <p className="text-gray-500 text-sm mt-1">
               Here's what's happening with your health journey
