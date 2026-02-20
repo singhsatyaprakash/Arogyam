@@ -5,6 +5,7 @@ import { usePatientAuth } from '../../contexts/PatientContext'
 import { MdChat, MdCall, MdVideocam, MdStar, MdAccessTime, MdLanguage, MdVerified, MdSearch, MdRefresh } from 'react-icons/md'
 import axios from 'axios'
 
+//these we will fetch later on the from doctor database using api  all unique sspecializations of doctors...
 const SPECIALIZATIONS = [
   'General Physician','Cardiologist','Dermatologist','Psychiatrist','Pediatrician',
   'Neurologist','Orthopedic','Gynecologist','Endocrinologist','ENT'
@@ -20,13 +21,7 @@ const AppointmentBooking = () => {
 
   const navigate = useNavigate();
   const { patient } = usePatientAuth()
-
-  useEffect(() => {
-    // fetch whenever any filter changes
-    fetchDoctors();
-    // eslint-disable-next-line
-  }, [specialization, minFee, maxFee, searchName]);
-
+  // console.log('Logged in patient:', patient);
   const fetchDoctors = async () => {
     setLoading(true);
     const params = new URLSearchParams();
@@ -46,6 +41,12 @@ const AppointmentBooking = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // fetch whenever any filter changes
+    fetchDoctors();
+  }, [specialization, minFee, maxFee, searchName]);
+
 
   const openBooking = (doc) => {
     // navigate to booking process page with doctor id (and pass doctor in state optional)
@@ -143,18 +144,7 @@ const AppointmentBooking = () => {
               <div className="text-sm text-gray-500">Showing {doctors.length} doctors</div>
             </div>
           </div>
-
-          {/* logged-in patient info */}
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 font-semibold">{patient?.name?.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}</div>
-              <div>
-                <div className="font-medium">{patient?.name ?? 'Guest'}</div>
-                <div className="text-xs text-gray-500">{patient?.email ?? ''}</div>
-              </div>
-            </div>
-          </div>
-
+          
           {/* Doctors Grid */}
           <div>
             {loading ? <div className="text-gray-600">Loading...</div> : (

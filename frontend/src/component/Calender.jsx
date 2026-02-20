@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const STORAGE_KEY = 'doctorconnect:doctor:todos:v1';
 
 function startOfDay(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -43,13 +44,37 @@ function buildCalendarDays(viewDate) {
   return days;
 }
 
+function isoDate(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 const Calender = ({ value, onChange, className = '' }) => {
   const today = useMemo(() => startOfDay(new Date()), []);
   const selected = value ? startOfDay(new Date(value)) : null;
 
-  const [viewDate, setViewDate] = useState(() => (selected ? new Date(selected.getFullYear(), selected.getMonth(), 1) : addMonths(today, 0)));
+  const [viewDate, setViewDate] = useState(() =>
+    selected ? new Date(selected.getFullYear(), selected.getMonth(), 1) : addMonths(today, 0)
+  );
 
   const days = useMemo(() => buildCalendarDays(viewDate), [viewDate]);
+
+  // count tasks per iso date (from local storage)
+  const dayCounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      const map = {};
+      for (const i of arr) {
+        map[i.date] = (map[i.date] || 0) + 1;
+      }
+      return map;
+    } catch {
+      return {};
+    }
+  }, [viewDate]);
 
   const handlePick = (d) => {
     onChange?.(startOfDay(d));
@@ -102,16 +127,17 @@ const Calender = ({ value, onChange, className = '' }) => {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-2 mt-1">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mt-1">
           {days.map((d) => {
             const inMonth = isSameMonth(d, viewDate);
             const isToday = isSameDay(d, today);
             const isSelected = selected ? isSameDay(d, selected) : false;
+            const count = dayCounts[isoDate(d)] || 0;
 
             const base =
-              'w-full aspect-square rounded-xl border text-sm sm:text-base flex items-center justify-center transition select-none';
+              'relative w-full aspect-square rounded-lg border text-sm sm:text-base flex items-center justify-center transition select-none';
             const muted = inMonth ? 'bg-white text-gray-900 hover:bg-gray-50' : 'bg-gray-50 text-gray-400 hover:bg-gray-100';
-            const todayRing = isToday ? 'ring-2 ring-red-200' : '';
+            const todayRing = isToday ? 'ring-2 ring-red-300' : '';
             const selectedStyle = isSelected ? 'bg-red-500 border-red-500 text-white hover:bg-red-600' : '';
 
             return (
@@ -122,8 +148,16 @@ const Calender = ({ value, onChange, className = '' }) => {
                 className={[base, muted, todayRing, selectedStyle].filter(Boolean).join(' ')}
                 aria-label={d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 aria-pressed={isSelected}
+                aria-current={isToday ? 'date' : undefined}
               >
                 {d.getDate()}
+                {count > 0 && (
+                  <span className={`absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full ${
+                    isSelected ? 'bg-white text-red-600' : 'bg-red-500 text-white'
+                  }`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -132,9 +166,7 @@ const Calender = ({ value, onChange, className = '' }) => {
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm text-gray-600">
           <div>
             Selected:{' '}
-            <span className="font-medium text-gray-900">
-              {selected ? selected.toLocaleDateString() : 'None'}
-            </span>
+            <span className="font-medium text-gray-900">{selected ? selected.toLocaleDateString() : 'None'}</span>
           </div>
           <div className="text-gray-500">Tip: tap a date to select</div>
         </div>

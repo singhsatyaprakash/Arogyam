@@ -35,11 +35,11 @@ const Footer = () => {
           <div className="flex items-center gap-2 mb-4">
             <FaUserMd className={`${brandAccentClass} text-2xl`} />
             <span className="text-xl font-bold text-white">
-              Doc<span className={`${brandAccentClass}`}>Connect</span>
+              Aro<span className={`${brandAccentClass}`}>gyam</span>
             </span>
           </div>
           <p className="text-sm text-gray-200 leading-relaxed">
-            DocConnect helps patients connect with verified doctors instantly
+            Arogyam helps patients connect with verified doctors instantly
             through chat, voice, and video consultations.
           </p>
         </div>
@@ -131,7 +131,7 @@ const Footer = () => {
 
       {/* Bottom Bar */}
       <div className={`border-t ${bottomBorderClass} py-4 text-center text-sm text-gray-200`}>
-        © {new Date().getFullYear()} DocConnect. All rights reserved.
+        © {new Date().getFullYear()} Arogyam. All rights reserved.
       </div>
     </footer>
   );

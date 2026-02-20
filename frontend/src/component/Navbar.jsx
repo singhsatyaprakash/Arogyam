@@ -36,7 +36,7 @@ const Navbar = () => {
         <div className="flex items-center gap-2">
           <FaUserMd className={`text-2xl ${logoColorClass}`} />
           <span className="text-xl font-bold text-gray-800">
-            Doc<span className={` ${logoColorClass}`}>Connect</span>
+            Aro<span className={` ${logoColorClass}`}>gyam</span>
           </span>
         </div>
 

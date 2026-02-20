@@ -32,8 +32,8 @@ const PatientNavbar = () => {
 
   const navLinks = [
     { path: "/patient/dashboard", label: "Dashboard", icon: FaHome },
-    { path: "/patient/booked-appointment", label: "My Doctor/Appointments", icon: FaUserMd },
     { path: "/patient/appointments", label: "Book Appointments", icon: FaCalendarAlt },
+    { path: "/patient/booked-appointment", label: "My Doctor/Appointments", icon: FaUserMd },
     { path: "/patient/chats", label: "Chats", icon: FaComments, badge: unread },
     { path: "/patient/video", label: "Video Calls", icon: FaVideo },
     { path: "/patient/reviews", label: "Reviews", icon: FaStar },
@@ -47,7 +47,7 @@ const PatientNavbar = () => {
         <div className="h-16 flex items-center px-4">
           <Link to="/patient/dashboard" className="flex items-center gap-2">
             <FaUser className={`${logoColor} text-2xl`} />
-            <span className="font-bold text-lg text-gray-800">Doc<span className="text-green-500">Connect</span></span>
+            <span className="font-bold text-lg text-gray-800">Aro<span className="text-green-500">gyam</span></span>
           </Link>
         </div>
 

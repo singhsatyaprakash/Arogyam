@@ -88,3 +88,14 @@ exports.validateCancelSlotBody = (req, res, next) => {
   if (!time || !isHHMM(time)) return res.status(400).json({ success: false, message: "time is required (HH:mm)" });
   return next();
 };
+
+// NEW: POST /appointments/confirm-payment-chat
+exports.validateConfirmPaymentChatBody = (req, res, next) => {
+  const { patientId, doctorId, type } = req.body || {};
+
+  if (!patientId || !isObjectId(patientId)) return res.status(400).json({ success: false, message: "Invalid patientId" });
+  if (!doctorId || !isObjectId(doctorId)) return res.status(400).json({ success: false, message: "Invalid doctorId" });
+  if (type !== "chat") return res.status(400).json({ success: false, message: "type must be 'chat'" });
+
+  return next();
+};

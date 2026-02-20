@@ -52,7 +52,7 @@ const DoctorNavbar = () => {
         <div className="h-16 flex items-center px-4">
           <Link to="/doctor/dashboard" className="flex items-center gap-2">
             <FaUserMd className={`${logoColor} text-2xl`} />
-            <span className="font-bold text-lg text-gray-800">Doc<span className={`${role === 'doctor' ? 'text-red-500' : 'text-green-500'}`}>Connect</span></span>
+            <span className="font-bold text-lg text-gray-800">Aro<span className={`${role === 'doctor' ? 'text-red-500' : 'text-green-500'}`}>gyam</span></span>
           </Link>
         </div>
 
@@ -102,7 +102,7 @@ const DoctorNavbar = () => {
             </button>
             <Link to="/doctor/dashboard" className="flex items-center gap-2">
               <FaUserMd className={`${logoColor} text-xl`} />
-              <span className="font-bold text-md text-gray-800">Doc<span className={`${role === 'doctor' ? 'text-red-500' : 'text-green-500'}`}>Connect</span></span>
+              <span className="font-bold text-md text-gray-800">Aro<span className={`${role === 'doctor' ? 'text-red-500' : 'text-green-500'}`}>gyam</span></span>
             </Link>
           </div>
 
@@ -123,7 +123,7 @@ const DoctorNavbar = () => {
             <div className="h-16 flex items-center px-4 justify-between">
               <Link to="/doctor/dashboard" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
                 <FaUserMd className={`${logoColor} text-2xl`} />
-                <span className="font-bold text-lg text-gray-800">Doc<span className={`${role === 'doctor' ? 'text-red-500' : 'text-green-500'}`}>Connect</span></span>
+                <span className="font-bold text-lg text-gray-800">Aro<span className={`${role === 'doctor' ? 'text-red-500' : 'text-green-500'}`}>gyam</span></span>
               </Link>
               <button onClick={() => setMobileOpen(false)} className="p-2"><FaTimes /></button>
             </div>

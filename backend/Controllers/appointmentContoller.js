@@ -1,5 +1,6 @@
 const Doctor = require("../Models/doctor.model");
 const Appointment = require("../Models/appointment.model");
+const ChatConnection = require("../Models/chatConnection.model"); // NEW
 const DoctorDaySchedule = require("../Models/bookingHistoryDoctorModel");
 const mongoose = require("mongoose");
 
@@ -274,6 +275,12 @@ exports.confirmPayment = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(String(patientId)) || !mongoose.Types.ObjectId.isValid(String(doctorId))) {
       return res.status(400).json({ success: false, message: "Invalid patientId/doctorId" });
     }
+
+    // CHANGED: reject chat; only video/in-person allowed
+    if (type === "chat") {
+      return res.status(400).json({ success: false, message: "Use /confirm-payment-chat endpoint for chat bookings" });
+    }
+
     if (!isYYYYMMDD(date) || !isHHMM(time)) {
       return res.status(400).json({ success: false, message: "Invalid date/time" });
     }
@@ -282,8 +289,6 @@ exports.confirmPayment = async (req, res) => {
     if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
 
     const feeMap = {
-      chat: doctor?.consultationFee?.chat || 0,
-      voice: doctor?.consultationFee?.voice || 0,
       video: doctor?.consultationFee?.video || 0,
       "in-person": (doctor?.consultationFee?.video || 0) + 100,
     };
@@ -292,10 +297,8 @@ exports.confirmPayment = async (req, res) => {
 
     await ensureDaySchedule({ doctorId, date, doctorDoc: doctor });
 
-    // PRE-GENERATE appointment id so bookingHistory can store bookingRef atomically
     const apptId = new mongoose.Types.ObjectId();
 
-    // atomically reserve the slot (by time)
     const reserve = await DoctorDaySchedule.updateOne(
       {
         doctor: doctorId,
@@ -329,7 +332,7 @@ exports.confirmPayment = async (req, res) => {
     }
 
     const appointment = await Appointment.create({
-      _id: apptId, // IMPORTANT
+      _id: apptId,
       patient: patientId,
       doctor: doctorId,
       type: String(type),
@@ -350,8 +353,67 @@ exports.confirmPayment = async (req, res) => {
   }
 };
 
-// NEW: GET /appointments/patient/:patientId
-exports.getPatientAppointments = async (req, res) => {
+// NEW: POST /appointments/confirm-payment-chat
+// Creates ChatConnection instead of Appointment slot
+exports.confirmPaymentChat = async (req, res) => {
+  try {
+    const { patientId, doctorId, type } = req.body || {};
+
+    if (!mongoose.Types.ObjectId.isValid(String(patientId)) || !mongoose.Types.ObjectId.isValid(String(doctorId))) {
+      return res.status(400).json({ success: false, message: "Invalid patientId/doctorId" });
+    }
+
+    if (type !== "chat") {
+      return res.status(400).json({ success: false, message: "type must be 'chat'" });
+    }
+
+    const doctor = await Doctor.findById(doctorId).lean();
+    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
+
+    const fee = doctor?.consultationFee?.chat || 0;
+
+    // Check if active chat already exists
+    const existingChat = await ChatConnection.findOne({
+      patient: patientId,
+      doctor: doctorId,
+      status: "active",
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (existingChat) {
+      return res.status(409).json({ success: false, message: "Active chat already exists with this doctor" });
+    }
+
+    // Calculate expiry: 10 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 10);
+
+    const chatConnection = await ChatConnection.create({
+      patient: patientId,
+      doctor: doctorId,
+      fee,
+      status: "active",
+      paymentStatus: "paid",
+      startedAt: new Date(),
+      expiresAt,
+      messageCount: 0,
+      lastActivityAt: new Date()
+    });
+
+    return res.json({
+      success: true,
+      message: "Chat connection created",
+      data: chatConnection.getPublicDetails()
+    });
+  } catch (err) {
+    console.error("confirmPaymentChat error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// NEW: GET /appointments/chat/:patientId
+// List active chats for a patient
+exports.getPatientChats = async (req, res) => {
   try {
     const { patientId } = req.params;
 
@@ -359,163 +421,61 @@ exports.getPatientAppointments = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid patientId" });
     }
 
-    const list = await Appointment.find({ patient: patientId })
-      .sort({ scheduledAt: -1 })
+    const chats = await ChatConnection.find({ patient: patientId })
+      .sort({ createdAt: -1 })
       .populate({
         path: "doctor",
-        select: "name specialization qualifications languages isVerified isOnline rating totalReviews profileImage experience consultationFee availability slotDurationMinutes"
+        select: "name specialization profileImage isVerified isOnline rating"
       })
       .lean();
 
-    // keep response clean (also clean nested doctor)
-    const cleaned = list.map((a) => {
-      if (a?.doctor && typeof a.doctor === "object") {
-        delete a.doctor.__v;
-        delete a.doctor.password;
-        delete a.doctor.token;
+    const cleaned = chats.map((c) => {
+      if (c?.doctor && typeof c.doctor === "object") {
+        delete c.doctor.__v;
+        delete c.doctor.password;
+        delete c.doctor.token;
       }
-      delete a.__v;
-      return a;
+      delete c.__v;
+      return c;
     });
 
     return res.json({ success: true, data: cleaned });
   } catch (err) {
-    console.error("getPatientAppointments error:", err);
+    console.error("getPatientChats error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// NEW: POST /appointments/:appointmentId/cancel
-exports.cancelAppointment = async (req, res) => {
+// NEW: POST /appointments/chat/:chatId/close
+// Close a chat connection manually
+exports.closeChat = async (req, res) => {
   try {
-    const { appointmentId } = req.params;
+    const { chatId } = req.params;
     const { patientId, reason } = req.body || {};
 
-    const appt = await Appointment.findById(appointmentId);
-    if (!appt) return res.status(404).json({ success: false, message: "Appointment not found" });
-    if (String(appt.patient) !== String(patientId)) return res.status(403).json({ success: false, message: "Forbidden" });
-    if (String(appt.status) !== "booked") return res.status(400).json({ success: false, message: "Appointment is not cancellable" });
-
-    appt.status = "cancelled";
-    appt.cancelledAt = new Date();
-    appt.cancelReason = typeof reason === "string" ? reason : "";
-    await appt.save();
-
-    // release booked slot if we have stable identifiers
-    if (appt.doctor && appt.date && appt.startTime) {
-      await DoctorDaySchedule.updateOne(
-        { doctor: appt.doctor, date: String(appt.date) },
-        { $pull: { bookedSlots: { time: String(appt.startTime) } } }
-      );
+    if (!mongoose.Types.ObjectId.isValid(String(chatId))) {
+      return res.status(400).json({ success: false, message: "Invalid chatId" });
     }
 
-    return res.json({ success: true, data: appt.getPublicDetails() });
+    const chat = await ChatConnection.findById(chatId);
+    if (!chat) return res.status(404).json({ success: false, message: "Chat not found" });
+
+    if (String(chat.patient) !== String(patientId)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    if (chat.status !== "active") {
+      return res.status(400).json({ success: false, message: "Chat is not active" });
+    }
+
+    chat.status = "closed";
+    chat.closedAt = new Date();
+    chat.closeReason = typeof reason === "string" ? reason : "";
+    await chat.save();
+
+    return res.json({ success: true, data: chat.getPublicDetails() });
   } catch (err) {
-    console.error("cancelAppointment error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// NEW: POST /appointments/cancel-slot
-exports.cancelSlot = async (req, res) => {
-  try {
-    const { doctorId, date, time } = req.body || {};
-    await DoctorDaySchedule.updateOne(
-      { doctor: doctorId, date: String(date) },
-      { $pull: { bookedSlots: { time: String(time) } } }
-    );
-    return res.json({ success: true, message: "Slot released" });
-  } catch (err) {
-    console.error("cancelSlot error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// NEW: POST /appointments/:appointmentId/reschedule
-exports.rescheduleAppointment = async (req, res) => {
-  try {
-    const { appointmentId } = req.params;
-    const { patientId, date, time } = req.body || {};
-
-    if (!mongoose.Types.ObjectId.isValid(String(appointmentId))) {
-      return res.status(400).json({ success: false, message: "Invalid appointmentId" });
-    }
-    if (!mongoose.Types.ObjectId.isValid(String(patientId))) {
-      return res.status(400).json({ success: false, message: "Invalid patientId" });
-    }
-    if (!isYYYYMMDD(date) || !isHHMM(time)) {
-      return res.status(400).json({ success: false, message: "Invalid date/time" });
-    }
-
-    const appt = await Appointment.findById(appointmentId);
-    if (!appt) return res.status(404).json({ success: false, message: "Appointment not found" });
-    if (String(appt.patient) !== String(patientId)) return res.status(403).json({ success: false, message: "Forbidden" });
-    if (String(appt.status) !== "booked") return res.status(400).json({ success: false, message: "Only booked appointments can be rescheduled" });
-
-    const doctorId = String(appt.doctor);
-    const doctor = await Doctor.findById(doctorId).lean();
-    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
-
-    const duration = Number(doctor?.slotDurationMinutes) || 15;
-
-    // Ensure schedule exists for the target date
-    await ensureDaySchedule({ doctorId, date: String(date), doctorDoc: doctor });
-
-    // Reserve NEW slot first
-    const reserve = await DoctorDaySchedule.updateOne(
-      {
-        doctor: doctorId,
-        date: String(date),
-        bookedSlots: { $not: { $elemMatch: { time: String(time) } } },
-      },
-      {
-        $push: {
-          bookedSlots: {
-            time: String(time),
-            type: String(appt.type || "video"),
-            fee: Number(appt.fee || 0),
-            patient: patientId,
-            bookingRef: appt._id,
-          },
-        },
-      }
-    );
-
-    if (!reserve?.modifiedCount) {
-      return res.status(409).json({ success: false, message: "Selected slot is not available" });
-    }
-
-    const scheduledAt = toScheduledAtUTC(String(date), String(time));
-    if (!scheduledAt) {
-      await DoctorDaySchedule.updateOne(
-        { doctor: doctorId, date: String(date) },
-        { $pull: { bookedSlots: { time: String(time) } } }
-      );
-      return res.status(400).json({ success: false, message: "Invalid scheduled time" });
-    }
-
-    // Keep old slot identifiers to release after update
-    const oldDate = appt.date;
-    const oldStart = appt.startTime;
-
-    appt.date = String(date);
-    appt.startTime = String(time);
-    appt.endTime = addMinutesHHMM(String(time), duration);
-    appt.scheduledAt = scheduledAt;
-
-    await appt.save();
-
-    // Release OLD slot best-effort
-    if (oldDate && oldStart) {
-      await DoctorDaySchedule.updateOne(
-        { doctor: doctorId, date: String(oldDate) },
-        { $pull: { bookedSlots: { time: String(oldStart) } } }
-      );
-    }
-
-    return res.json({ success: true, data: appt.getPublicDetails() });
-  } catch (err) {
-    console.error("rescheduleAppointment error:", err);
+    console.error("closeChat error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -645,7 +605,7 @@ exports.doctorRescheduleAppointment = async (req, res) => {
 
     await ensureDaySchedule({ doctorId, date: String(date), doctorDoc: doctor });
 
-    // reserve NEW slot first
+    // Reserve NEW slot first
     const reserve = await DoctorDaySchedule.updateOne(
       {
         doctor: doctorId,
@@ -658,7 +618,7 @@ exports.doctorRescheduleAppointment = async (req, res) => {
             time: String(time),
             type: String(appt.type || "video"),
             fee: Number(appt.fee || 0),
-            patient: appt.patient,
+            patient: patientId,
             bookingRef: appt._id,
           },
         },
@@ -678,6 +638,7 @@ exports.doctorRescheduleAppointment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid scheduled time" });
     }
 
+    // Keep old slot identifiers to release after update
     const oldDate = appt.date;
     const oldStart = appt.startTime;
 
@@ -688,7 +649,7 @@ exports.doctorRescheduleAppointment = async (req, res) => {
 
     await appt.save();
 
-    // release OLD slot
+    // Release OLD slot best-effort
     if (oldDate && oldStart) {
       await DoctorDaySchedule.updateOne(
         { doctor: doctorId, date: String(oldDate) },
@@ -698,7 +659,7 @@ exports.doctorRescheduleAppointment = async (req, res) => {
 
     return res.json({ success: true, data: appt.getPublicDetails() });
   } catch (err) {
-    console.error("doctorRescheduleAppointment error:", err);
+    console.error("rescheduleAppointment error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

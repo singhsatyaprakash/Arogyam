@@ -9,15 +9,29 @@ function isoDate(d = new Date()) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-
+function toIso(val) {
+  // Accept Date or string
+  if (val instanceof Date) return isoDate(val);
+  if (typeof val === 'string') return val;
+  return isoDate();
+}
 function uid() {
   if (typeof crypto !== 'undefined' && crypto?.randomUUID) return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-const TodoList = () => {
+const TodoList = ({ value, onChange }) => {
   const today = useMemo(() => isoDate(), []);
-  const [viewDate, setViewDate] = useState(today);
+  // shared/controlled date support
+  const [viewDate, setViewDate] = useState(value ? toIso(value) : today);
+  useEffect(() => {
+    if (value) setViewDate(toIso(value));
+  }, [value]);
+  const setDate = (next) => {
+    const iso = toIso(next);
+    setViewDate(iso);
+    onChange?.(iso);
+  };
 
   const [items, setItems] = useState(() => {
     try {
@@ -28,8 +42,8 @@ const TodoList = () => {
       return [];
     }
   });
-
   const [text, setText] = useState('');
+  const [moveId, setMoveId] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -41,7 +55,15 @@ const TodoList = () => {
   }, [items]);
 
   const list = useMemo(
-    () => items.filter((i) => i.date === viewDate).sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)),
+    () =>
+      items
+        .filter((i) => i.date === viewDate)
+        .sort((a, b) => {
+          // Incomplete first, then by createdAt
+          if (a.completed && !b.completed) return 1;
+          if (!a.completed && b.completed) return -1;
+          return (a.createdAt ?? 0) - (b.createdAt ?? 0);
+        }),
     [items, viewDate]
   );
 
@@ -60,34 +82,42 @@ const TodoList = () => {
     setText('');
     inputRef.current?.focus();
   };
-
   const toggle = (id) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, completed: !i.completed } : i)));
   };
-
   const remove = (id) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
-
   const startEdit = (id) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, editing: true } : { ...i, editing: false })));
   };
-
   const cancelEdit = (id) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, editing: false } : i)));
   };
-
   const commitEdit = (id, nextText) => {
     const value = (nextText ?? '').trim().slice(0, 180);
     if (!value) return;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, text: value, editing: false } : i)));
   };
-
   const clearCompleted = () => {
     setItems((prev) => prev.filter((i) => !(i.date === viewDate && i.completed)));
   };
-
-  const resetToToday = () => setViewDate(today);
+  const clearAll = () => {
+    // remove all tasks for the current date
+    setItems((prev) => prev.filter((i) => i.date !== viewDate));
+  };
+  const carryForward = () => {
+    // copy incomplete tasks to tomorrow and switch view
+    const next = isoDate(new Date(new Date(viewDate).getTime() + 24 * 60 * 60 * 1000));
+    setItems((prev) => {
+      const clones = prev
+        .filter((i) => i.date === viewDate && !i.completed)
+        .map((i) => ({ ...i, id: uid(), date: next, completed: false, createdAt: Date.now() }));
+      return [...prev, ...clones];
+    });
+    setDate(next);
+  };
+  const resetToToday = () => setDate(today);
 
   return (
     <section className="bg-white border shadow-sm rounded-2xl">
@@ -105,7 +135,7 @@ const TodoList = () => {
                 aria-label="Select date"
                 type="date"
                 value={viewDate}
-                onChange={(e) => setViewDate(e.target.value)}
+                onChange={(e) => setDate(e.target.value)}
                 className="pl-9 pr-3 py-2 text-sm rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -140,6 +170,7 @@ const TodoList = () => {
 
       <div className="p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row gap-3">
+          {/* input row */}
           <div className="flex-1">
             <label className="sr-only" htmlFor="todo-input">
               Add a task
@@ -157,7 +188,6 @@ const TodoList = () => {
             />
             <p className="mt-2 text-xs text-gray-500">Tip: Press Enter to add. Click the pencil to edit.</p>
           </div>
-
           <button
             type="button"
             onClick={addItem}
@@ -175,10 +205,8 @@ const TodoList = () => {
             </div>
           ) : (
             list.map((item) => (
-              <div
-                key={item.id}
-                className="group flex items-start gap-3 p-3 rounded-xl border hover:bg-gray-50 transition"
-              >
+              <div key={item.id} className="group flex items-start gap-3 p-3 rounded-xl border hover:bg-gray-50 transition">
+                {/* toggle */}
                 <button
                   type="button"
                   onClick={() => toggle(item.id)}
@@ -233,6 +261,27 @@ const TodoList = () => {
                   )}
                   <button
                     type="button"
+                    onClick={() => setMoveId(item.id)}
+                    className="p-2 rounded-lg border hover:bg-gray-50"
+                    aria-label="Reschedule task"
+                    title="Move to another date"
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </button>
+                  {moveId === item.id && (
+                    <input
+                      type="date"
+                      className="ml-1 px-2 py-1 text-xs rounded-lg border bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                      defaultValue={viewDate}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, date: next } : i)));
+                        setMoveId(null);
+                      }}
+                    />
+                  )}
+                  <button
+                    type="button"
                     onClick={() => remove(item.id)}
                     className="p-2 rounded-lg border hover:bg-gray-50"
                     aria-label="Delete task"
@@ -246,7 +295,26 @@ const TodoList = () => {
         </div>
 
         <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <div />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={carryForward}
+              disabled={list.filter((i) => !i.completed).length === 0}
+              className="inline-flex items-center justify-center px-3 py-2 text-sm rounded-xl border hover:bg-gray-50 disabled:opacity-50"
+              title="Copy incomplete to tomorrow"
+            >
+              Carry forward
+            </button>
+            <button
+              type="button"
+              onClick={clearAll}
+              disabled={list.length === 0}
+              className="inline-flex items-center justify-center px-3 py-2 text-sm rounded-xl border hover:bg-gray-50 disabled:opacity-50"
+              title="Remove all tasks for this date"
+            >
+              Clear all
+            </button>
+          </div>
           <button
             type="button"
             onClick={clearCompleted}

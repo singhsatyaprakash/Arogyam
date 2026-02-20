@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const appointmentController = require('../Controllers/appointmentContoller');
 const appointmentMiddleware = require('../middlewares/appointmentMiddleware');
-const doctorMiddleware = require('../middlewares/doctorMiddleware'); // NEW
+const doctorMiddleware = require('../middlewares/doctorMiddleware');
 
-// Defensive wrappers to prevent: "argument handler must be a function"
 const mw = (fn) => (typeof fn === 'function' ? fn : (req, res, next) => next());
 const h = (fn) =>
   (typeof fn === 'function'
@@ -57,7 +56,25 @@ router.get(
   h(appointmentController.getAvailability)
 );
 
-// NEW: payment success -> create appointment + book slot
+// NEW: Chat routes (before slot routes for clarity)
+router.post(
+  '/confirm-payment-chat',
+  mw(appointmentMiddleware.validateConfirmPaymentChatBody),
+  h(appointmentController.confirmPaymentChat)
+);
+
+router.get(
+  '/chat/:patientId',
+  mw(appointmentMiddleware.validatePatientAppointmentsParams),
+  h(appointmentController.getPatientChats)
+);
+
+router.post(
+  '/chat/:chatId/close',
+  h(appointmentController.closeChat)
+);
+
+// Slot-based routes (video/in-person)
 router.post(
   '/confirm-payment',
   mw(appointmentMiddleware.validateConfirmPaymentBody),

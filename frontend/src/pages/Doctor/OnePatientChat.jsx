@@ -297,16 +297,16 @@ const OnePatientChat = () => {
                         className={`flex ${isDoctor ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
                             isDoctor
                               ? 'bg-red-500 text-white rounded-br-none'
-                              : 'bg-green-100 text-green-900 rounded-bl-none border border-green-200'
+                              : 'bg-green-500 text-white rounded-bl-none'
                           }`}
                         >
-                          <p>{msg.text}</p>
+                          <p className="text-sm">{msg.text}</p>
                           <div
                             className={`text-xs mt-1 flex items-center gap-1 ${
-                              isDoctor ? 'text-red-100' : 'text-green-700'
+                              isDoctor ? 'text-red-100' : 'text-green-100'
                             }`}
                           >
                             <FaClock className="text-xs" />

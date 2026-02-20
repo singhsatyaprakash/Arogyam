@@ -121,13 +121,13 @@ export default function PatientChats(){
               return (
                 <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`rounded px-3 py-2 max-w-[70%] ${
+                    className={`rounded-lg px-4 py-2 max-w-[70%] ${
                       isMe
-                        ? 'bg-green-600 text-white'
-                        : 'bg-red-500 text-white'
+                        ? 'bg-green-500 text-white rounded-br-none'
+                        : 'bg-red-500 text-white rounded-bl-none'
                     }`}
                   >
-                    <div>{m.text}</div>
+                    <div className="text-sm">{m.text}</div>
                     <div className={`text-xs mt-1 ${isMe ? 'text-green-100' : 'text-red-100'}`}>{m.timestamp}</div>
                   </div>
                 </div>
