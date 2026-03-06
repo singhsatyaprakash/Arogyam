@@ -6,6 +6,9 @@ const doctorMiddleware = require('../middlewares/doctorMiddleware');
 // Public routes
 router.post('/register', doctorController.registerDoctor);
 router.post('/login', doctorMiddleware.doctorLoginLimiter, doctorController.loginDoctor);
+
+router.post('/getConnectionsList', doctorController.getConnectionsList);
+
 router.get('/available', doctorController.getAvailableDoctors);
 
 // Protected routes (require authentication)
@@ -32,5 +35,6 @@ router.get('/test', (req, res) => {
 
 // Public doctor details (safe) (keep last among simple GETs)
 router.get('/:doctorId', doctorController.getDoctorByIdPublic);
+
 
 module.exports = router;

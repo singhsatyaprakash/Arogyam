@@ -1,6 +1,8 @@
 const Doctor = require('../Models/doctor.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { doctorRescheduleAppointment } = require('./appointmentContoller');
+const ChatConnection = require('../Models/chatConnection.model');
 
 const SUPPORTED_CONSULTATION_TYPES = new Set(['chat', 'video', 'voice', 'in-person']);
 
@@ -38,7 +40,7 @@ const isWeekend = (date) => {
   return day === 0 || day === 6;
 };
 
-// Register a new doctor
+// Register a new doctor...
 const registerDoctor = async (req, res) => {
   try {
     const {
@@ -57,29 +59,15 @@ const registerDoctor = async (req, res) => {
       toTime
     } = req.body;
 
-    // Validate required fields (allow 0 fees; only reject null/undefined/empty)
-    if (!name || !email || !phone || !password || !specialization ||
-        experience == null || chatFee == null || voiceFee == null ||
-        videoFee == null || !fromTime || !toTime) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please fill all required fields'
-      });
+    if (!name || !email || !phone || !password || !specialization || experience == null || chatFee == null || voiceFee == null || videoFee == null || !fromTime || !toTime) {
+      return res.status(400).json({success: false, message: 'Please fill all required fields'});
     }
-
-    // Check if doctor already exists (use findOne)
     const existingDoctor = await Doctor.findOne({ email: email.toLowerCase() });
     if (existingDoctor) {
-      return res.status(400).json({
-        success: false,
-        message: 'Doctor with this email already exists'
-      });
+      return res.status(400).json({success: false,message: 'Doctor with this email already exists'});
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new doctor - map fees and availability to schema shape
     const doctor = new Doctor({
       name,
       email: email.toLowerCase(),
@@ -100,89 +88,33 @@ const registerDoctor = async (req, res) => {
       }
     });
 
-    // Save doctor to database
     await doctor.save();
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: doctor._id, 
-        email: doctor.email, 
-        role: 'doctor' 
-      },
-      process.env.JWT_SECRET || 'your_jwt_secret_key_here',
-      { expiresIn: '7d' }
-    );
-
-    // Return response
-    res.status(201).json({
-      success: true,
-      message: 'Doctor registered successfully',
-      data: {
-        doctor: doctor.getPublicProfile(),
-        token,
-        redirectTo: '/doctor/dashboard'
-      }
-    });
+    const token = jwt.sign({Id: doctor._id, email: doctor.email, role: 'doctor' }, process.env.JWT_SECRET || 'your_jwt_secret_key_here' ,{ expiresIn: '7d' });
+    delete doctor.password;
+    res.status(201).json({success: true,message: 'Doctor registered successfully',data:{doctor,token}});
 
   } catch (error) {
     console.error('Doctor registration error:', error);
-    
-    // Handle duplicate key errors
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already exists'
-      });
-    }
-
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({success: false,message: 'Internal server error'});
   }
 };
 
-// Doctor login
+// Doctor login...
 const loginDoctor = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validate input
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password'
-      });
+      return res.status(400).json({success: false, message: 'Please provide email and password'});
     }
 
-    // Find doctor by email (uses static implemented in model)
     const doctor = await Doctor.findByEmail(email);
     if (!doctor) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
+      return res.status(401).json({success: false,message: 'Invalid credentials'});
     }
-
-    // Check password
     const isPasswordValid = await bcrypt.compare(password, doctor.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
+      return res.status(401).json({success: false, message: 'Invalid credentials'});
     }
 
     // Check if doctor is verified ///later on this code will implemented
@@ -193,41 +125,39 @@ const loginDoctor = async (req, res) => {
     //   });
     // }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: doctor._id, 
-        email: doctor.email, 
-        role: 'doctor' 
-      },
-      process.env.JWT_SECRET || 'your_jwt_secret_key_here',
-      { expiresIn: '7d' }
-    );
+    const token = jwt.sign({id: doctor._id, email: doctor.email, role: 'doctor'},process.env.JWT_SECRET || 'your_jwt_secret_key_here',{ expiresIn: '7d' });
 
-    // Update last login (optional)
     doctor.lastLogin = Date.now();
     await doctor.save();
+    delete doctor.password;
 
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        doctor: doctor.getPublicProfile(),
-        token,
-        redirectTo: '/doctor/dashboard'
-      }
-    });
+    res.status(200).json({success: true,message: 'Login successful',data: {doctor,token}});
 
   } catch (error) {
     console.error('Doctor login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({success: false,message: 'Internal server error'});
   }
 };
 
+const getConnectionsList=async(req,res)=>{
+  try{
+    console.log(req.body);
+    const doctorId=req.body.doctorId;
+    if(!doctorId){
+      return res.status(400).json({success: false,message: 'Doctor ID is required'});
+    }
+    const doctor=await Doctor.findById(doctorId);
+    if(!doctor){
+      return res.status(404).json({success: false,message: 'Doctor not found'});
+    }
+    const connections= await ChatConnection.find({ doctor: doctorId }).populate('patient', 'name email profileImage');
+    res.status(200).json({success: true,connections});
+  }
+  catch(error){
+    console.error('Get connections list error:', error);
+    res.status(500).json({success: false,message: 'Internal server error'});
+  }
+}
 // Get doctor profile
 const getDoctorProfile = async (req, res) => {
   try {
@@ -598,6 +528,7 @@ const createDoctorSlots = async (req, res) => {
 module.exports = {
   registerDoctor,
   loginDoctor,
+  getConnectionsList,
   getDoctorProfile,
   updateDoctorProfile,
   getAllDoctors,
