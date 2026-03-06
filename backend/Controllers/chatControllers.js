@@ -159,31 +159,43 @@ const getChatHistory = async (req, res) => {
   try {
     const { connectionId } = req.params;
 
-    const chatHistory = await ChatHistory.findOne({ connectionId })
-      .populate({
-        path: "connectionId",
-        populate: [
-          { path: "doctor", select: "name email specialization avatar" },
-          { path: "patient", select: "name email avatar" }
-        ]
-      });
-
-    if (!chatHistory) {
+    // Validate connection exists
+    const connection = await ChatConnection.findById(connectionId)
+      .populate("doctor", "name email specialization profileImage")
+      .populate("patient", "name email profileImage");
+    
+    if (!connection) {
       return res.status(404).json({
         success: false,
-        message: "Chat history not found"
+        message: "Chat connection not found"
       });
+    }
+
+    // Get chat history
+    let chatHistory = await ChatHistory.findOne({ connectionId });
+    
+    // If no history exists, create empty one
+    if (!chatHistory) {
+      chatHistory = new ChatHistory({
+        connectionId,
+        messages: []
+      });
+      await chatHistory.save();
     }
 
     res.status(200).json({
       success: true,
-      data: chatHistory
+      data: {
+        connection: connection.getPublicDetails(),
+        messages: chatHistory.messages || []
+      }
     });
   } catch (error) {
     console.error("Get chat history error:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
+      error: error.message
     });
   }
 };
