@@ -6,10 +6,15 @@ const ChatWithPatient = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-100">
 
       {/* Sidebar */}
-      <DoctorChatList onSelectPatient={setSelectedPatient} />
+      <div className="w-80 border-r border-gray-300">
+        <DoctorChatList
+          onSelectPatient={setSelectedPatient}
+          selectedConnectionId={selectedPatient?._id || null}
+        />
+      </div>
 
       {/* Chat Window */}
       <div className="flex-1">

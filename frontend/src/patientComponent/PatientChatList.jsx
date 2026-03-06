@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { PatientContext } from "../contexts/PatientContext";
 import axios from "axios";
 import { FaUserMd, FaSearch } from "react-icons/fa";
+import { IoMdArrowRoundBack } from "react-icons/io";
 import noProfileImage from "../assets/noProfile.webp";
 
 const PatientChatList = ({ onSelectDoctor }) => {
@@ -69,6 +70,13 @@ const PatientChatList = ({ onSelectDoctor }) => {
       {/* Header */}
       <div className="p-5 border-b bg-green-50">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.history.back()}
+            title="Go back"
+            className="p-1 rounded-full hover:bg-green-100 transition"
+          >
+            <IoMdArrowRoundBack className="text-2xl text-gray-700" />
+          </button>
           <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
             <FaUserMd className="text-white" />
           </div>

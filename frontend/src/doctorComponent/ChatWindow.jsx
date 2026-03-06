@@ -3,6 +3,7 @@ import { IoMdClose } from "react-icons/io";
 import { useSocket } from "../contexts/SocketContext";
 import { DoctorContext } from "../contexts/DoctorContext";
 import noProfileImage from "../assets/noProfile.webp";
+import axios from "axios";
 
 const ChatWindow = ({ selectedPatient, onClose }) => {
 
@@ -11,40 +12,59 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
 
   const messagesEndRef = useRef(null);
 
-  // Load chat history and join room
+  // Load chat history when patient is selected
   useEffect(() => {
-    if (!selectedPatient || !socket) return;
+    if (!selectedPatient) {
+      setMessages([]);
+      return;
+    }
 
     const loadChatHistory = async () => {
       try {
-        const response = await fetch(
+        setLoading(true);
+        setError(null);
+
+        const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/chats/history/${selectedPatient._id}`
         );
-        if (response.ok) {
-          const data = await response.json();
-          if (data?.data?.messages) {
-            setMessages(data.data.messages);
-          }
+
+        if (response.data?.data?.messages) {
+          setMessages(response.data.data.messages);
+        } else {
+          setMessages([]);
         }
       } catch (err) {
         console.error("Error loading chat history:", err);
+        setMessages([]);
+        setError("Unable to load conversation. Please try again.");
+      } finally {
+        setLoading(false);
       }
     };
 
     loadChatHistory();
+  }, [selectedPatient]);
+
+  useEffect(() => {
+    if (!selectedPatient || !socket) return;
 
     const connectionId = selectedPatient._id;
     socket.emit("join_chat", { connectionId });
 
-    socket.on("receive_message", (msg) => {
+    const handleReceiveMessage = (msg) => {
       setMessages(prev => [...prev, msg]);
-    });
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
 
     return () => {
-      socket.off("receive_message");
+      socket.off("receive_message", handleReceiveMessage);
     };
   }, [selectedPatient, socket]);
 
@@ -77,6 +97,8 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
   const handleSend = () => {
     if (!message.trim() || !socket) return;
 
+    setSending(true);
+
     const msgData = {
       connectionId: selectedPatient._id,
       senderId: doctor.doctor._id,
@@ -86,6 +108,7 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
 
     socket.emit("send_message", msgData);
     setMessage("");
+    setSending(false);
   };
 
   const handleKeyPress = (e) => {
@@ -96,72 +119,84 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-full bg-white">
 
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between bg-white shadow-sm">
+      <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-red-50 to-red-50 shadow-sm">
         <div className="flex items-center gap-3">
           <img
             src={selectedPatient.patient?.profileImage || noProfileImage}
             alt="patient"
-            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-            onError={(e)=> e.target.src=noProfileImage}
+            className="w-12 h-12 rounded-full object-cover border-2 border-red-200"
+            onError={(e) => (e.target.src = noProfileImage)}
           />
 
           <div>
             <h2 className="font-semibold text-gray-800">
-              {selectedPatient.patient?.name}
+              {selectedPatient.patient?.name || "Patient"}
             </h2>
             <p className="text-xs text-gray-500">
-              {selectedPatient.patient?.email}
+              {selectedPatient.patient?.email || ""}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="py-2 px-4 rounded-full hover:bg-red-100 transition"
-        >
-          <IoMdClose className="text-2xl"/>
-        </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-red-100 rounded-full transition"
+          >
+            <IoMdClose className="text-2xl text-gray-600" />
+          </button>
+        )}
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
 
-        {messages.length === 0 && (
-          <p className="text-center text-gray-400">
-            Start conversation with patient
-          </p>
+        {error && (
+          <div className="flex justify-center p-3 bg-red-50 text-red-600 rounded text-sm">
+            {error}
+          </div>
         )}
 
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${
-              msg.senderType === "doctor"
-                ? "justify-end"
-                : "justify-start"
-            }`}
-          >
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            <p>Start your conversation with {selectedPatient.patient?.name || "the patient"}</p>
+          </div>
+        ) : (
+          messages.map((msg, index) => (
             <div
-              className={`max-w-xs rounded-lg px-4 py-2 ${
+              key={index}
+              className={`flex ${
                 msg.senderType === "doctor"
-                  ? "bg-red-500 text-white rounded-br-none"
-                  : "bg-green-500 text-white rounded-bl-none"
+                  ? "justify-end"
+                  : "justify-start"
               }`}
             >
-              <p className="break-words">{msg.text}</p>
-              <p className={`text-xs mt-1 ${
-                msg.senderType === "doctor"
-                  ? "text-red-100"
-                  : "text-green-100"
-              }`}>
-                {formatTime(msg.createdAt)}
-              </p>
+              <div
+                className={`max-w-xs rounded-lg px-4 py-2 ${
+                  msg.senderType === "doctor"
+                    ? "bg-red-500 text-white rounded-br-none"
+                    : "bg-gray-300 text-gray-800 rounded-bl-none"
+                }`}
+              >
+                <p className="break-words">{msg.text}</p>
+                <p className={`text-xs mt-1 ${
+                  msg.senderType === "doctor"
+                    ? "text-red-100"
+                    : "text-gray-600"
+                }`}>
+                  {formatTime(msg.createdAt)}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
 
         <div ref={messagesEndRef} />
 
@@ -174,14 +209,15 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Type your message..."
-          className="flex-1 border border-gray-300 px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-red-400"
+          disabled={sending}
+          className="flex-1 border border-gray-300 px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-red-400 disabled:bg-gray-100"
         />
         <button
           onClick={handleSend}
-          disabled={!message.trim()}
-          className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition disabled:bg-gray-300"
+          disabled={!message.trim() || sending}
+          className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          Send
+          {sending ? "..." : "Send"}
         </button>
       </div>
 
