@@ -60,7 +60,7 @@ const Home = () => {
       } else {
         setDoctor({ ...data.data, token });
       }
-      console.log(patient, doctor);
+      // console.log(patient, doctor);
       navigate(`/${role}/dashboard`, { replace: true });
     }
     catch (err) {
