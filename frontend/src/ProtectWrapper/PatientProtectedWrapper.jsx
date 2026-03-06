@@ -4,6 +4,7 @@ import { PatientContext } from '../contexts/PatientContext'
 
 const PatientProtectedWrapper = ({ children }) => {
   const { patient } = useContext(PatientContext);
+  // console.log(patient);
   
   if (!patient) {
     return <Navigate to="/patient/login" replace />

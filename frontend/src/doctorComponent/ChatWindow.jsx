@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
+import noProfileImage from "../assets/noProfile.webp";
 
 const ChatWindow = ({ selectedPatient, onClose }) => {
   const [message, setMessage] = useState("");
@@ -37,16 +38,21 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
     <div className="flex flex-col h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between bg-white">
+      <div className="p-4 border-b flex items-center justify-between bg-white shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center font-bold">
-            {selectedPatient.patient.name.charAt(0)}
-          </div>
+          <img
+            src={selectedPatient.patient?.profileImage || noProfileImage}
+            alt={selectedPatient.patient?.name || "Patient"}
+            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+            onError={(e) => {
+              e.target.src = noProfileImage;
+            }}
+          />
           <div>
-            <h2 className="font-semibold">
+            <h2 className="font-semibold text-gray-800">
               {selectedPatient.patient.name}
             </h2>
-            <p className="text-xs text-green-500">Online</p>
+            <p className="text-xs text-gray-500">{selectedPatient.patient.email}</p>
           </div>
         </div>
 

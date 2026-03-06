@@ -13,7 +13,7 @@ const DoctorRegisterNavbar = () => {
           <FaStethoscope className="text-white text-base" />
         </div>
         <span className="text-lg font-bold text-gray-800">
-          Doc<span className="text-red-500">Connect</span>
+          Aro<span className="text-red-500">gyam</span>
         </span>
       </div>
 

@@ -1,29 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { usePatientAuth } from '../contexts/PatientContext';
-import { CheckCircle, Loader2, XCircle } from 'lucide-react';
-import axios from 'axios';
+import React, { useState, useEffect, useContext, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { PatientContext } from "../contexts/PatientContext";
+import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import axios from "axios";
 
 const ChatPayment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const bookingData = location.state;
-  const { patient} = usePatientAuth();
+
+  const { patient } = useContext(PatientContext);
 
   const [processing, setProcessing] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(10);
 
+  // Prevent multiple API calls
+  const hasProcessed = useRef(false);
+
   useEffect(() => {
     if (!bookingData) {
-      navigate('/patient/appointments');
+      navigate("/patient/appointments");
       return;
     }
 
-    // Simulate payment processing (10 seconds)
     const timer = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           processPayment();
@@ -37,41 +40,47 @@ const ChatPayment = () => {
   }, [bookingData]);
 
   const processPayment = async () => {
+    //Stop duplicate calls
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+
     try {
       setProcessing(true);
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/chats/new-connection`,
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/chats/new-connection`,
         {
           doctorId: bookingData.doctorId,
-          patientId: patient._id,
+          patientId: patient.patient._id,
           fee: bookingData.fee,
-          note: bookingData.note || 'Chat session started'
+          note: bookingData.note || "Chat session started",
         }
       );
-      alert('Payment response:', response.data);
+
+      console.log("Payment response:", response.data);
 
       if (response.data.success) {
         setSuccess(true);
         setProcessing(false);
 
-        // Redirect to chats after 2 seconds
         setTimeout(() => {
-          navigate('/patient/chats', {
-            state: { newConnection: response.data.data.connection }
+          navigate("/patient/chats", {
+            state: { newConnection: response.data.data.connection },
           });
         }, 2000);
       } else {
-        throw new Error(response.data.message || 'Payment failed');
+        throw new Error(response.data.message || "Payment failed");
       }
     } catch (err) {
-      console.error('Payment processing error:', err);
-      setError(err.response?.data?.message || err.message || 'Payment processing failed');
+      console.error("Payment processing error:", err);
+      setError(
+        err.response?.data?.message || err.message || "Payment processing failed"
+      );
       setProcessing(false);
     }
   };
 
-  if (!bookingData) {
-    return null;
-  }
+  if (!bookingData) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -90,14 +99,14 @@ const ChatPayment = () => {
         <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-              {bookingData.doctor?.name?.charAt(0) || 'D'}
+              {bookingData.doctor?.name?.charAt(0) || "D"}
             </div>
             <div>
               <h3 className="font-semibold text-gray-800">
-                Dr. {bookingData.doctor?.name || 'Unknown'}
+                {bookingData.doctor?.name || "Unknown"}
               </h3>
               <p className="text-sm text-gray-600">
-                {bookingData.doctor?.specialization || 'General Physician'}
+                {bookingData.doctor?.specialization || "General Physician"}
               </p>
             </div>
           </div>
@@ -113,7 +122,7 @@ const ChatPayment = () => {
           </div>
         </div>
 
-        {/* Processing Status */}
+        {/* Status */}
         <div className="text-center mb-6">
           {processing && countdown > 0 && (
             <div>
@@ -143,9 +152,7 @@ const ChatPayment = () => {
               <h2 className="text-xl font-bold text-green-600 mb-2">
                 Payment Successful!
               </h2>
-              <p className="text-gray-600">
-                Redirecting to your chats...
-              </p>
+              <p className="text-gray-600">Redirecting to your chats...</p>
             </div>
           )}
 
@@ -157,7 +164,7 @@ const ChatPayment = () => {
               </h2>
               <p className="text-gray-600 mb-4">{error}</p>
               <button
-                onClick={() => navigate('/patient/appointments')}
+                onClick={() => navigate("/patient/appointments")}
                 className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition"
               >
                 Back to Appointments
@@ -166,7 +173,7 @@ const ChatPayment = () => {
           )}
         </div>
 
-        {/* Security Note */}
+        {/* Note */}
         {processing && (
           <div className="text-center text-xs text-gray-500">
             <p>🔒 This is a simulated payment process</p>

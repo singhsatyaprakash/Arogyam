@@ -19,7 +19,7 @@ const PatientRegisterNavbar = () => {
           <FaHeartbeat className="text-white text-base" />
         </div>
         <span className="text-lg font-bold text-gray-800">
-          Doc<span className="text-green-500">Connect</span>
+          Aro<span className="text-green-500">gyam</span>
         </span>
       </div>
 
@@ -29,7 +29,7 @@ const PatientRegisterNavbar = () => {
           Already registered?
         </span>
         <Link
-          to="/login"
+          to="/"
           className="bg-green-500 text-white px-4 py-1.5 rounded-md text-sm
                      font-semibold hover:bg-green-600 transition"
         >

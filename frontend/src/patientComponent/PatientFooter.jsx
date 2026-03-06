@@ -8,7 +8,7 @@ const PatientFooter = () => {
       <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <h4 className="text-lg font-bold text-gray-800">DocConnect</h4>
+            <h4 className="text-lg font-bold text-gray-800">Arogyam</h4>
             <p className="text-sm text-gray-500">Trusted telemedicine for patients and doctors.</p>
           </div>
 
@@ -44,7 +44,7 @@ const PatientFooter = () => {
         </div>
 
         <div className="mt-6 border-t pt-4 text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} DocConnect. All rights reserved.
+          © {new Date().getFullYear()} Arogyam. All rights reserved.
         </div>
       </div>
     </footer>

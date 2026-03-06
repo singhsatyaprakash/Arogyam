@@ -12,4 +12,4 @@ const DoctorProtectedWrapper = ({ children }) => {
   return <>{children}</>
 }
 
-export default DoctorProtectedWrapper
+export default DoctorProtectedWrapper;

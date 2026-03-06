@@ -8,12 +8,15 @@ const DoctorRegister = () => {
   const [step, setStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const navigate=useNavigate();
   const [formData, setFormData] = useState({
+    title: "Dr.",
     name: "",
     email: "",
     phone: "",
     password: "",
+    confirmPassword: "",
     specialization: "",
     experience: "",
     qualifications: "",
@@ -29,6 +32,31 @@ const DoctorRegister = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "confirmPassword" || name === "password") {
+      setPasswordError("");
+    }
+  };
+
+  const titleOptions = [
+    { value: "Dr.", label: "Dr. (Doctor)" },
+    { value: "Prof.", label: "Prof. (Professor)" },
+    { value: "Mr.", label: "Mr." },
+    { value: "Mrs.", label: "Mrs." },
+    { value: "Ms.", label: "Ms." },
+    { value: "Miss", label: "Miss" },
+  ];
+
+  const validatePasswords = () => {
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError("Passwords do not match!");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setPasswordError("Password must be at least 6 characters!");
+      return false;
+    }
+    setPasswordError("");
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -38,10 +66,13 @@ const DoctorRegister = () => {
     try {
       console.log("Submitting:", formData);
 
+      const nameWithTitle = `${formData.title} ${formData.name}`;
+
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/doctors/register`,
         {
           ...formData,
+          name: nameWithTitle,
           experience: Number(formData.experience),
           chatFee: Number(formData.chatFee),
           voiceFee: Number(formData.voiceFee),
@@ -51,9 +82,8 @@ const DoctorRegister = () => {
 
       console.log("Success:", res.data);
       alert("Registration successful!");
-      navigate("/verify-email", { state: { email: formData.email } }); 
-      
-
+      //navigate("/verify-email", { state: { email: formData.email } }); 
+      navigate("/");
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Registration failed");
@@ -63,6 +93,12 @@ const DoctorRegister = () => {
   };
 
   const goToStep = (nextStep) => {
+    // Validate passwords when moving from step 1 to step 2
+    if (step === 1 && nextStep === 2) {
+      if (!validatePasswords()) {
+        return;
+      }
+    }
     // Validates only currently-rendered inputs (since other steps are not in the DOM)
     const ok = formRef.current?.reportValidity?.() ?? true;
     if (ok) setStep(nextStep);
@@ -80,12 +116,12 @@ const DoctorRegister = () => {
           
           {/* HEADER */}
           <div className="flex items-center justify-center mb-4">
-            <div className="h-1 w-16 rounded-full bg-red-500 mr-3 shadow-md" />
-            <h2 className="text-2xl font-bold text-center">
+            <div className="h-1 w-16 rounded-full bg-gradient-to-r from-red-500 to-red-600 mr-3 shadow-md" />
+            <h2 className="text-3xl font-bold text-center text-gray-800">
               Join Our Medical Network
             </h2>
           </div>
-          <p className="text-gray-500 text-center mb-6 text-sm">
+          <p className="text-gray-600 text-center mb-6 text-sm font-medium">
             Complete your profile to start consulting patients online
           </p>
 
@@ -130,24 +166,66 @@ const DoctorRegister = () => {
             {/* STEP 1 */}
             {step === 1 && (
               <>
-                <label className="text-sm font-medium">Full Name</label>
-                <input required name="name" value={formData.name} className={input} onChange={handleChange} />
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800 block mb-2">Title</label>
+                  <select 
+                    required 
+                    name="title" 
+                    value={formData.title} 
+                    className={input + " cursor-pointer"}
+                    onChange={handleChange}
+                  >
+                    {titleOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-2">This will appear before your name</p>
+                </div>
 
-                <label className="text-sm font-medium mt-3 block">Email</label>
-                <input required name="email" type="email" value={formData.email} className={input} onChange={handleChange} />
+                <div className="bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800">Full Name</label>
+                  <input required name="name" value={formData.name} placeholder="Enter your full name" className={input} onChange={handleChange} />
+                  {formData.name && (
+                    <p className="text-xs text-green-600 mt-2 font-medium">Preview: {formData.title} {formData.name}</p>
+                  )}
+                </div>
 
-                <label className="text-sm font-medium mt-3 block">Phone</label>
-                <input required name="phone" value={formData.phone} className={input} onChange={handleChange} />
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800">Email</label>
+                  <input required name="email" type="email" value={formData.email} placeholder="your@email.com" className={input} onChange={handleChange} />
+                </div>
 
-                <label className="text-sm font-medium mt-3 block">Password</label>
-                <input required name="password" type="password" value={formData.password} className={input} onChange={handleChange} />
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800">Phone</label>
+                  <input required name="phone" value={formData.phone} placeholder="10-digit phone number" className={input} onChange={handleChange} />
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800">Password</label>
+                  <input required name="password" type="password" value={formData.password} placeholder="Minimum 6 characters" className={input} onChange={handleChange} />
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800">Confirm Password</label>
+                  <input required name="confirmPassword" type="password" value={formData.confirmPassword} placeholder="Re-enter your password" className={input} onChange={handleChange} />
+                  {passwordError && (
+                    <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      {passwordError}
+                    </p>
+                  )}
+                </div>
 
                 <button
                   type="button"
                   onClick={() => goToStep(2)}
-                  className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-2 rounded-md font-semibold hover:scale-[1.01] transform transition-shadow shadow-sm mt-4 flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.01] transform transition-all duration-200 shadow-md mt-4 flex items-center justify-center gap-2"
                 >
-                  <span>Continue</span>
+                  <span>Continue to Professional Info</span>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                   </svg>
@@ -158,14 +236,29 @@ const DoctorRegister = () => {
             {/* STEP 2 */}
             {step === 2 && (
               <>
-                <input required name="specialization" placeholder="Specialization" value={formData.specialization} className={input} onChange={handleChange} />
-                <input required type="number" name="experience" placeholder="Experience (years)" value={formData.experience} className={input} onChange={handleChange} />
-                <input required name="qualifications" placeholder="Qualifications" value={formData.qualifications} className={input} onChange={handleChange} />
-                <input required name="languages" placeholder="Languages" value={formData.languages} className={input} onChange={handleChange} />
+                <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800 block mb-2">Specialization</label>
+                  <input required name="specialization" placeholder="e.g., Cardiology, Neurology" value={formData.specialization} className={input} onChange={handleChange} />
+                </div>
 
-                <div className="flex justify-between mt-4">
-                  <button type="button" onClick={() => setStep(1)} className="border px-4 py-2 rounded flex items-center gap-2 hover:shadow-sm transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800 block mb-2">Experience (Years)</label>
+                  <input required type="number" min="0" max="70" name="experience" placeholder="Enter years of experience" value={formData.experience} className={input} onChange={handleChange} />
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800 block mb-2">Qualifications</label>
+                  <input required name="qualifications" placeholder="e.g., MBBS, MD, DNB" value={formData.qualifications} className={input} onChange={handleChange} />
+                </div>
+
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg mb-4">
+                  <label className="text-sm font-semibold text-gray-800 block mb-2">Languages</label>
+                  <input required name="languages" placeholder="e.g., English, Hindi, Tamil" value={formData.languages} className={input} onChange={handleChange} />
+                </div>
+
+                <div className="flex justify-between gap-3 mt-4">
+                  <button type="button" onClick={() => setStep(1)} className="flex-1 border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 hover:shadow-md transition duration-200 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                     </svg>
                     <span>Back</span>
@@ -173,9 +266,9 @@ const DoctorRegister = () => {
                   <button
                     type="button"
                     onClick={() => goToStep(3)}
-                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded hover:scale-[1.01] transform transition-shadow shadow-sm flex items-center gap-2"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.01] transform transition-all duration-200 shadow-md flex items-center justify-center gap-2"
                   >
-                    <span>Continue</span>
+                    <span>Continue to Availability</span>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
@@ -187,46 +280,67 @@ const DoctorRegister = () => {
             {/* STEP 3 */}
             {step === 3 && (
               <>
-                <div className="grid grid-cols-3 gap-3">
-                  <input required name="chatFee" type="number" placeholder="Chat ₹" value={formData.chatFee} className={input} onChange={handleChange} />
-                  <input required name="voiceFee" type="number" placeholder="Voice ₹" value={formData.voiceFee} className={input} onChange={handleChange} />
-                  <input required name="videoFee" type="number" placeholder="Video ₹" value={formData.videoFee} className={input} onChange={handleChange} />
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-lg mb-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Consultation Fees (₹)</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white rounded-lg p-3 border-2 border-emerald-200">
+                      <label className="text-xs font-medium text-gray-600 block mb-2">Chat</label>
+                      <input required name="chatFee" type="number" min="0" placeholder="Chat" value={formData.chatFee} className={input} onChange={handleChange} />
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border-2 border-blue-200">
+                      <label className="text-xs font-medium text-gray-600 block mb-2">Voice</label>
+                      <input required name="voiceFee" type="number" min="0" placeholder="Voice" value={formData.voiceFee} className={input} onChange={handleChange} />
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border-2 border-purple-200">
+                      <label className="text-xs font-medium text-gray-600 block mb-2">Video</label>
+                      <input required name="videoFee" type="number" min="0" placeholder="Video" value={formData.videoFee} className={input} onChange={handleChange} />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <input
-                    required
-                    type="time"
-                    lang="en-GB"
-                    step={900}
-                    name="fromTime"
-                    aria-label="From time (24-hour)"
-                    value={formData.fromTime}
-                    className={input}
-                    onChange={handleChange}
-                    max={formData.toTime || undefined}
-                  />
-                  <input
-                    required
-                    type="time"
-                    lang="en-GB"
-                    step={900}
-                    name="toTime"
-                    aria-label="To time (24-hour)"
-                    value={formData.toTime}
-                    className={input}
-                    onChange={handleChange}
-                    min={formData.fromTime || undefined}
-                  />
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-4 rounded-lg mb-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Availability (24-hour format)</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-lg p-3 border-2 border-orange-200">
+                      <label className="text-xs font-medium text-gray-600 block mb-2">From Time</label>
+                      <input
+                        required
+                        type="time"
+                        lang="en-GB"
+                        step={900}
+                        name="fromTime"
+                        aria-label="From time (24-hour)"
+                        value={formData.fromTime}
+                        className={input}
+                        onChange={handleChange}
+                        max={formData.toTime || undefined}
+                      />
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border-2 border-yellow-200">
+                      <label className="text-xs font-medium text-gray-600 block mb-2">To Time</label>
+                      <input
+                        required
+                        type="time"
+                        lang="en-GB"
+                        step={900}
+                        name="toTime"
+                        aria-label="To time (24-hour)"
+                        value={formData.toTime}
+                        className={input}
+                        onChange={handleChange}
+                        min={formData.fromTime || undefined}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <p className="text-xs text-gray-500 mt-1">
-                  Use 24-hour time (e.g., 09:30, 17:45).
+                <p className="text-xs text-gray-600 bg-amber-50 border-l-4 border-amber-400 p-3 rounded mb-4">
+                  <strong>Example:</strong> From 09:30 to 17:45
                 </p>
 
-                <div className="flex justify-between mt-4 items-center">
-                  <button type="button" onClick={() => setStep(2)} className="border px-4 py-2 rounded flex items-center gap-2 hover:shadow-sm transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex justify-between gap-3 mt-4 items-center">
+                  <button type="button" onClick={() => setStep(2)} className="flex-1 border-2 border-gray-300 px-4 py-3 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 hover:shadow-md transition duration-200 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                     </svg>
                     <span>Back</span>
@@ -238,7 +352,7 @@ const DoctorRegister = () => {
                       // Ensure required fields + 24h time format are valid before preview
                       if (formRef.current?.reportValidity?.()) setShowPreview(true);
                     }}
-                    className="bg-amber-400 text-white px-4 py-2 rounded hover:bg-amber-500 shadow-md flex items-center gap-2"
+                    className="flex-1 bg-amber-400 hover:bg-amber-500 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200 flex items-center justify-center gap-2"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276a1 1 0 010 1.788L15 12v-2zM4 6v12a2 2 0 002 2h12" />
@@ -249,15 +363,20 @@ const DoctorRegister = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded disabled:opacity-60 shadow-md hover:scale-[1.02] transform transition"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-3 rounded-lg font-semibold disabled:opacity-60 shadow-lg hover:shadow-xl disabled:cursor-not-allowed hover:scale-[1.01] transform transition-all duration-200 flex items-center justify-center gap-2"
                   >
-                    {loading ? "Submitting..." : (
-                      <span className="flex items-center gap-2">
+                    {loading ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        <span>Complete</span>
-                      </span>
+                        <span>Complete Registration</span>
+                      </>
                     )}
                   </button>
                 </div>

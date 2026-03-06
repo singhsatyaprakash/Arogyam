@@ -26,7 +26,7 @@ const Navbar = () => {
     ? 'bg-green-500 hover:bg-green-600'
     : 'bg-red-500 hover:bg-red-600';
   const logoColorClass = role === 'patient' ? 'text-green-500' : 'text-red-500';
-  const loginTextClass = role === 'patient' ? 'text-green-600' : 'text-red-600';
+  // const loginTextClass = role === 'patient' ? 'text-green-600' : 'text-red-600';
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-md border-b">

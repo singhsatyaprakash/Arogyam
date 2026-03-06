@@ -1,19 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/homeBackground.webp";
 import { FaHeartbeat, FaUserInjured, FaUserMd, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSignInAlt, FaUserPlus} from "react-icons/fa";
 import Navbar from "../component/Navbar";
 import Footer from "../component/Footer";
 import axios from "axios";
-import { useDoctor } from "../contexts/DoctorContext";
-import { usePatientAuth } from "../contexts/PatientContext";
+import { DoctorContext } from "../contexts/DoctorContext";
+import { PatientContext } from "../contexts/PatientContext";
 
 const Home = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState("patient");
   const [showPassword, setShowPassword] = useState(false);
-  const { login: doctorLogin } = useDoctor();
-  const { login: patientLogin } = usePatientAuth();
+  const { doctor, setDoctor } = useContext(DoctorContext);
+  const { patient, setPatient } = useContext(PatientContext);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -22,7 +22,6 @@ const Home = () => {
 
   useEffect(() => {
     localStorage.setItem("role", role);
-    // notify other components in the same tab (storage event does not fire in same window)
     window.dispatchEvent(new CustomEvent("roleChange", { detail: role }));
   }, [role]);
 
@@ -33,33 +32,38 @@ const Home = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const API_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/${role === "patient" ? "patients" : "doctors"}/login`,
-        { email: formData.email, password: formData.password }
-      );
-      const data = res?.data;
-      console.log(data);
+      const endpoint = role === "patient" ? "patients" : "doctors";
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/${endpoint}/login`, {
+        email: formData.email,
+        password: formData.password,
+      });
+      const data = response.data;
       if (!data?.success) {
         alert(data?.message || "Login failed");
         return;
       }
-      // update context (will store token & fetch profile)
       const token = data.data?.token;
-      if (role === 'patient') {
-        await patientLogin(token);
-      } else {
-        await doctorLogin(token);
+      if (!token) {
+        alert("No token received");
+        return;
       }
-      const redirect = data.data?.redirectTo;
-
-      // navigate to dashboard (use replace so back button won't return to login)
-      navigate(`${redirect}`, { replace: true });
-
-    } catch (err) {
+      else{
+        localStorage.setItem("token", token);
+        localStorage.setItem("role", role);
+      }
+      // Update context based on role
+      if (role === "patient") {
+        setPatient({ ...data.data, token });
+      } else {
+        setDoctor({ ...data.data, token });
+      }
+      console.log(patient, doctor);
+      navigate(`/${role}/dashboard`, { replace: true });
+    }
+    catch (err) {
       const msg = err?.response?.data?.message || "Login error";
       alert(msg);
     }
@@ -69,7 +73,7 @@ const Home = () => {
     <>
       <Navbar />
       <div
-        className=" pt-20 bg-cover bg-center flex items-center justify-center relative opacity-95"
+        className="pt-20 bg-cover bg-center flex items-center justify-center relative opacity-95"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm"></div>
@@ -89,6 +93,7 @@ const Home = () => {
           </p>
 
           <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
+            {/*toggle between patient and doctor */}
             <button
               onClick={() => setRole("patient")}
               className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
@@ -114,10 +119,9 @@ const Home = () => {
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {/* email input */}
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-1">
-                Email Address
-              </label>
+              <label className="text-xs font-medium text-gray-700 block mb-1">Email Address</label>
               <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-green-400">
                 <FaEnvelope className="text-gray-400 mr-3" />
                 <input
@@ -131,7 +135,7 @@ const Home = () => {
                 />
               </div>
             </div>
-
+            {/* password input */}
             <div>
               <label className="text-xs font-medium text-gray-700 block mb-1">
                 Password

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { useDoctor } from "../contexts/DoctorContext";
+import React, { useContext, useEffect, useState } from "react";
+import { DoctorContext } from "../contexts/DoctorContext";
 import axios from "axios";
 import { FaUserMd, FaSearch } from "react-icons/fa";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import noProfileImage from "../assets/noProfile.webp";
 
 const DoctorChatList = ({ onSelectPatient }) => {
-  const { doctor } = useDoctor();
+  const { doctor } = useContext(DoctorContext);
   const [connectionList, setConnectionList] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,7 @@ const DoctorChatList = ({ onSelectPatient }) => {
 
   useEffect(() => {
     const fetchConnections = async () => {
-      if (!doctor?._id) {
+      if (!doctor.doctor?._id) {
         setLoading(false);
         return;
       }
@@ -23,9 +23,9 @@ const DoctorChatList = ({ onSelectPatient }) => {
         setLoading(true);
         const result = await axios.post(
           `${import.meta.env.VITE_API_URL}/doctors/getConnectionsList`,
-          { doctorId: doctor._id }
+          { doctorId: doctor.doctor._id }
         );
-
+        console.log(result.data);
         if (result.data.success) {
           setConnectionList(result.data.connections || []);
         } else {

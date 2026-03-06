@@ -3,14 +3,24 @@ import { Link, useNavigate } from "react-router-dom";
 import PatientRegisterNavbar from "./PatientRegisterNavbar";
 import PatientFooter from "../../patientComponent/PatientFooter";
 import { FaUser, FaEnvelope, FaPhone, FaBirthdayCake, FaLock, FaCheckCircle } from "react-icons/fa";
+import axios from "axios";
 
 const PatientRegister = () => {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', age: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    age: '',
+    gender: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [showPasswordRules, setShowPasswordRules] = useState(false);
   const navigate = useNavigate();
-  const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3000';
 
-  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,25 +29,22 @@ const PatientRegister = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/patients/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          age: form.age,
-          password: form.password
-        })
+      const response=await axios.post(`${import.meta.env.VITE_API_URL}/patients/register`, {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        age: form.age,
+        gender: form.gender,
+        password: form.password
       });
-      const data = await res.json();
-      if (!data.success) {
-        alert(data.message || 'Registration failed');
+      console.log(response.data);
+       if (!response.data?.success) {
+        alert(response.data?.message || 'Registration failed');
         return;
       }
+      alert('Registration successful! Please log in.');
 
-      // After registration, go to verify email (no dashboard redirect / no auto-login)
-      navigate("/verify-email", { state: { email: form.email } });
+      navigate("/");
     } catch (err) {
       console.error('Register error', err);
       alert('Registration error');
@@ -110,6 +117,18 @@ const PatientRegister = () => {
                   <label>
                     <div className="text-sm text-gray-600 mb-1 flex items-center gap-2"><FaBirthdayCake className="text-green-500" /> Age</div>
                     <input name="age" value={form.age} onChange={handleChange} type="number" min="0" required className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-green-400" placeholder="Age" />
+                  </label>
+                </div>
+
+                <div>
+                  <label>
+                    <div className="text-sm text-gray-600 mb-1 flex items-center gap-2"><FaUser className="text-green-500" /> Gender</div>
+                    <select name="gender" value={form.gender} onChange={handleChange} required className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-green-400 bg-white">
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
                   </label>
                 </div>
 

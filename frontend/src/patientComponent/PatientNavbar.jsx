@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { FaUser, FaCalendarAlt, FaComments, FaVideo, FaStar, FaBars, FaTimes, FaHome, FaSignOutAlt, FaChevronDown, FaCheckCircle, FaClipboardList, FaUserMd } from "react-icons/fa";
 import { NavLink, Link, useLocation } from "react-router-dom";
-import { usePatientAuth } from "../contexts/PatientContext";
+import { PatientContext } from "../contexts/PatientContext";
 import noProfileImage from "../assets/noProfile.webp";
 
 const PatientNavbar = () => {
@@ -16,13 +16,13 @@ const PatientNavbar = () => {
     setProfileOpen(false);
   }, [location.pathname]);
 
-  const { patient, logout } = usePatientAuth();
+  const { patient, setPatient } = useContext(PatientContext);
 
-  const displayName = patient?.name || 'You';
-  const displayEmail = patient?.email || '';
-  const profileImage = patient?.profileImage || noProfileImage;
-  const unread = patient?.unreadMessages || 0;
-  const verified = !!patient?.isVerified;
+  const displayName = patient?.patient?.name || 'Patient';
+  const displayEmail = patient?.patient?.email || '';
+  const profileImage = patient?.patient?.profileImage || noProfileImage;
+  const unread = patient?.patient?.unreadMessages || 0;
+  const verified = !!patient?.patient?.isVerified;
 
   const logoColor = 'text-green-500';
   const activeClass = 'bg-green-50 text-green-600';
@@ -39,6 +39,11 @@ const PatientNavbar = () => {
     { path: "/patient/reviews", label: "Reviews", icon: FaStar },
     { path: "/patient/daily-routine", label: "Daily Routine", icon: FaClipboardList },
   ];
+
+  const handleLogout = () => {
+    setPatient(null);
+    localStorage.removeItem('token');
+  };
 
   return (
     <>
@@ -81,7 +86,7 @@ const PatientNavbar = () => {
           </div>
           <div className="mt-3 space-y-2">
             <Link to="/patient/settings" className="block w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100">Settings</Link>
-            <button onClick={() => logout()} className="mt-2 w-full text-left px-3 py-2 text-sm text-red-600 rounded-md hover:bg-gray-100 flex items-center gap-2">
+            <button onClick={() => handleLogout()} className="mt-2 w-full text-left px-3 py-2 text-sm text-red-600 rounded-md hover:bg-gray-100 flex items-center gap-2">
               <FaSignOutAlt /> Logout
             </button>
           </div>
@@ -152,7 +157,7 @@ const PatientNavbar = () => {
 
               <div className="mt-4 space-y-2">
                 <Link to="/patient/settings" className="block w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100" onClick={() => setMobileOpen(false)}>Settings</Link>
-                <button onClick={() => { logout(); setMobileOpen(false); }} className="w-full text-left text-sm px-3 py-2 text-red-600 rounded-md hover:bg-gray-100">Logout</button>
+                <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="w-full text-left text-sm px-3 py-2 text-red-600 rounded-md hover:bg-gray-100">Logout</button>
               </div>
             </div>
           </aside>
@@ -170,7 +175,7 @@ const PatientNavbar = () => {
             <div className="py-2">
               <Link to="/patient/dashboard" className="block px-4 py-2 text-sm hover:bg-gray-50">Dashboard</Link>
               <Link to="/patient/settings" className="block px-4 py-2 text-sm hover:bg-gray-50">Settings</Link>
-              <button onClick={() => { logout(); setProfileOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"><FaSignOutAlt /> Logout</button>
+              <button onClick={() => { handleLogout(); setProfileOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"><FaSignOutAlt /> Logout</button>
             </div>
           </div>
         </div>

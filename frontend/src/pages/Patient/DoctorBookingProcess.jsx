@@ -1,24 +1,29 @@
-import React, { useEffect, useState, useContext, useMemo } from "react";
+import { useEffect, useState, useContext, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { MdChat, MdCall, MdVideocam, MdStar } from "react-icons/md";
-import PatientContext from "../../contexts/PatientContext";
+import {PatientContext} from "../../contexts/PatientContext";
 import PatientNavbar from "../../patientComponent/PatientNavbar";
 import noProfile from "../../assets/noProfile.webp";
 import ChatBookingOnly from "../../patientComponent/ChatBookingOnly";
-
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 const DoctorBookingProcess = () => {
   const { doctorId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { patient } = useContext(PatientContext) || {};
+  const { patient } = useContext(PatientContext);
 
   const [doctor, setDoctor] = useState(location.state?.doctor || null);
   const [loading, setLoading] = useState(!doctor);
 
   const [mode, setMode] = useState("video");
 
-  const [message, setMessage] = useState("");
+  const consultationModes = [
+    { key: "chat", label: "Chat", icon: MdChat },
+    { key: "voice", label: "Voice", icon: MdCall },
+    { key: "video", label: "Video", icon: MdVideocam },
+    { key: "in-person", label: "In-person", icon: null },
+  ];
 
   const getLocalYYYYMMDD = (date = new Date()) => {
     const d = new Date(date);
@@ -175,7 +180,7 @@ const DoctorBookingProcess = () => {
           res = await axios.get(
             `${import.meta.env.VITE_API_URL}/doctors/${doctorId}`
           );
-        } catch (e) {
+        } catch {
           res = await axios.get(
             `${import.meta.env.VITE_API_URL}/doctors/search`,
             {
@@ -266,7 +271,7 @@ const DoctorBookingProcess = () => {
         bookingType: "SLOT",
         doctorId: doctor?._id || doctorId,
         doctor: { _id: doctor?._id || doctorId, name: doctor?.name },
-        patientId: patient?._id,
+        patientId: patient?.patient?._id,
         date: selectedDate,
         type: mode,
         time,
@@ -275,21 +280,46 @@ const DoctorBookingProcess = () => {
     });
   };
 
-  if (loading) return <div>Loading doctor...</div>;
-  if (!doctor) return <div>Doctor not found</div>;
+  if (loading) {
+    return (
+      <>
+        <PatientNavbar />
+        <main className="bg-gray-50 min-h-screen pt-16 lg:pt-0 lg:pl-64 flex items-center justify-center px-6">
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm px-6 py-8 text-center w-full max-w-md">
+            <p className="text-lg font-semibold text-gray-800">Loading doctor profile...</p>
+            <p className="text-sm text-gray-500 mt-2">Please wait while we fetch details.</p>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (!doctor) {
+    return (
+      <>
+        <PatientNavbar />
+        <main className="bg-gray-50 min-h-screen pt-16 lg:pt-0 lg:pl-64 flex items-center justify-center px-6">
+          <div className="bg-white border border-red-100 rounded-2xl shadow-sm px-6 py-8 text-center w-full max-w-md">
+            <p className="text-lg font-semibold text-gray-800">Doctor not found</p>
+            <p className="text-sm text-gray-500 mt-2">Try returning to search and selecting another profile.</p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
       <PatientNavbar />
 
-      <main className="bg-gray-50 min-h-screen pt-16 lg:pt-0 lg:pl-64">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+      <main className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen pt-16 lg:pt-0 lg:pl-64">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
           {/* Doctor Header */}
-          <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col md:flex-row gap-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col md:flex-row gap-6">
             <img
               src={doctor.profileImage || noProfile}
               alt={doctor.name}
-              className="w-32 h-32 rounded-xl object-cover border"
+              className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border border-gray-200"
             />
 
             <div className="flex-1">
@@ -331,9 +361,9 @@ const DoctorBookingProcess = () => {
           </div>
 
           {/* About + Fee */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* About */}
-            <div className="bg-white rounded-xl p-5 shadow-sm md:col-span-2">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm md:col-span-2">
               <h3 className="font-semibold text-gray-800 mb-2">About Doctor</h3>
               <p className="text-sm text-gray-600">
                 {doctor.bio || "No bio provided."}
@@ -359,24 +389,24 @@ const DoctorBookingProcess = () => {
             </div>
 
             {/* Fees */}
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
               <h3 className="font-semibold text-gray-800 mb-3">Consultation Fees</h3>
 
               <div className="text-sm text-gray-600 space-y-2">
-                <div className="flex items-center gap-2">
-                  <MdChat className="text-gray-500" />
+                <div className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <MdChat className="text-gray-500 text-2xl" />
                   <span>Chat: ₹{doctor.consultationFee?.chat ?? 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MdCall className="text-gray-500" />
+                <div className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <MdCall className="text-gray-500 text-2xl" />
                   <span>Voice: ₹{doctor.consultationFee?.voice ?? 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MdVideocam className="text-gray-500" />
+                <div className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <MdVideocam className="text-gray-500 text-2xl" />
                   <span>Video: ₹{doctor.consultationFee?.video ?? 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500 font-semibold">🏥</span>
+                <div className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <LocalHospitalIcon className="text-gray-500 text-2xl" />
                   <span>In-person: ₹{doctor.consultationFee?.["in-person"] ?? 0}</span>
                 </div>
               </div>
@@ -392,20 +422,30 @@ const DoctorBookingProcess = () => {
           </div>
 
           {/* Mode Selection */}
-          <div className="bg-white rounded-xl p-5 shadow-sm mt-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="font-semibold text-gray-800 mb-3">
               Choose Consultation Mode
             </h3>
 
-            <div className="flex flex-wrap gap-6 text-sm">
-              {["chat", "voice", "video", "in-person"].map((m) => (
-                <label key={m} className="flex items-center gap-2 cursor-pointer">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              {consultationModes.map(({ key, label, icon: Icon }) => (
+                <label
+                  key={key}
+                  className={[
+                    "flex items-center justify-center gap-2 cursor-pointer border rounded-xl px-3 py-3 transition ",
+                    mode === key
+                      ? "bg-green-50 text-green-700 border-green-400"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-green-300",
+                  ].join(" ")}
+                >
                   <input
                     type="radio"
-                    checked={mode === m}
-                    onChange={() => setMode(m)}
+                    checked={mode === key}
+                    onChange={() => setMode(key)}
+                    className="accent-green-600"
                   />
-                  <span className="capitalize">{m}</span>
+                  {Icon ? <Icon className="text-base" /> : <span><LocalHospitalIcon className="text-gray-500 text-2xl" /></span>}
+                  <span>{label}</span>
                 </label>
               ))}
             </div>
@@ -414,7 +454,7 @@ const DoctorBookingProcess = () => {
             {mode === "chat" ? (
               <ChatBookingOnly
                 doctor={doctor}
-                patient={patient}
+                patient={patient.patient}
                 onProceed={(note) => {
                   const fee = Number(doctor?.consultationFee?.chat ?? 0);
 
@@ -423,7 +463,7 @@ const DoctorBookingProcess = () => {
                       bookingType: "CHAT",
                       doctorId: doctor?._id || doctorId,
                       doctor: { _id: doctor?._id || doctorId, name: doctor?.name },
-                      patientId: patient?._id,
+                      patientId: patient?.patient?._id,
                       fee,
                       note,
                       chatDurationDays: 10,
@@ -434,7 +474,7 @@ const DoctorBookingProcess = () => {
             ) : (
               <>
                 {/* Date Selection */}
-                <div className="mt-4 flex flex-col gap-3">
+                <div className="mt-5 bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
                   <div className="flex items-center gap-2 overflow-x-auto pb-1">
                     {nextDates.map((d) => {
                       const active = d === selectedDate;
@@ -444,7 +484,7 @@ const DoctorBookingProcess = () => {
                           type="button"
                           onClick={() => setSelectedDate(d)}
                           className={[
-                            "whitespace-nowrap border rounded-full px-3 py-1.5 text-xs transition",
+                            "whitespace-nowrap border rounded-full px-3 py-1.5 text-xs transition font-medium",
                             active
                               ? "bg-green-600 text-white border-green-600"
                               : "bg-white text-gray-700 border-gray-200 hover:border-green-400",
@@ -456,7 +496,7 @@ const DoctorBookingProcess = () => {
                     })}
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <label className="text-sm text-gray-700 font-medium">
                       Select date
                     </label>
@@ -465,7 +505,7 @@ const DoctorBookingProcess = () => {
                       value={selectedDate}
                       min={todayStr}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="border rounded-md px-3 py-1.5 text-sm"
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
                     />
                   </div>
                 </div>
@@ -498,7 +538,7 @@ const DoctorBookingProcess = () => {
                   {!availabilityLoading &&
                     !availabilityError &&
                     (allTimes?.length ?? 0) > 0 && (
-                      <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                         {allTimes.map((time) => {
                           const isBooked = bookedTimes.has(time);
                           const freeSlot = freeSlotByTime.get(time);
@@ -521,7 +561,7 @@ const DoctorBookingProcess = () => {
                                 if (!isBooked) setSelectedSlot(slot);
                               }}
                               className={[
-                                "border rounded-lg px-2 py-2 text-left transition",
+                                "border rounded-lg px-3 py-2 text-left transition",
                                 isBooked
                                   ? "bg-red-50 text-red-800 cursor-not-allowed border-red-200"
                                   : "bg-green-50 text-green-900 border-green-200 hover:border-green-500",
@@ -555,7 +595,7 @@ const DoctorBookingProcess = () => {
                     )}
 
                   {selectedSlot && (
-                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-green-200 rounded-lg p-3 bg-green-50">
                       <div className="text-sm text-gray-700">
                         Selected:{" "}
                         <span className="font-medium">{selectedDate}</span> at{" "}
@@ -567,7 +607,7 @@ const DoctorBookingProcess = () => {
                       <button
                         type="button"
                         onClick={handleProceed}
-                        className="px-4 py-2 rounded-md bg-green-600 text-white text-sm hover:bg-green-700"
+                        className="px-4 py-2 rounded-md bg-green-600 text-white text-sm font-medium hover:bg-green-700"
                       >
                         Proceed
                       </button>
@@ -578,7 +618,6 @@ const DoctorBookingProcess = () => {
             )}
           </div>
 
-          {message && <div className="mt-4 text-sm text-red-600">{message}</div>}
         </div>
       </main>
     </>

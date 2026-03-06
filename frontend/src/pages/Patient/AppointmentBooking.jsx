@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PatientNavbar from '../../patientComponent/PatientNavbar'
-import { usePatientAuth } from '../../contexts/PatientContext'
+import { PatientContext } from '../../contexts/PatientContext'
 import { MdChat, MdCall, MdVideocam, MdStar, MdAccessTime, MdLanguage, MdVerified, MdSearch, MdRefresh } from 'react-icons/md'
 import axios from 'axios'
 
@@ -21,7 +21,7 @@ const AppointmentBooking = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const navigate = useNavigate();
-  const { patient } = usePatientAuth()
+  const { patient } = useContext(PatientContext);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -260,5 +260,6 @@ const AppointmentBooking = () => {
     </div>
   )
 }
+
 
 export default AppointmentBooking

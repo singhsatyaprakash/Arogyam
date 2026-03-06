@@ -1,10 +1,8 @@
-// DoctorNavbar.jsx (Updated)
-// Converted into a responsive sidebar + topbar for mobile
 import { FaUserMd, FaCalendarAlt, FaComments, FaUsers, FaVideo, FaCog, FaSignOutAlt, FaChevronDown, FaBars, FaTimes, FaHome, FaFileMedical, FaLightbulb, FaPills, FaCheckCircle } from "react-icons/fa";
 import { NavLink, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import noProfileImage from "../assets/noProfile.webp";
-import { useDoctor } from "../contexts/DoctorContext";
+import { DoctorContext } from "../contexts/DoctorContext";
 
 const DoctorNavbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -17,13 +15,18 @@ const DoctorNavbar = () => {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const { doctor, logout } = useDoctor();
+  const { doctor, setDoctor } = useContext(DoctorContext);
 
-  const displayName = doctor?.name || 'Dr. Satyal';
-  const displayEmail = doctor?.email || 'dr.satyal@medicare.com';
-  const profileImageSrc = doctor?.profileImage || noProfileImage;
-  const verified = !!doctor?.isVerified;
-  const unread = doctor?.unreadMessages || 0;
+  const handleLogout = () => {
+    setDoctor(null);
+    localStorage.removeItem('doctorToken');
+  };
+
+  const displayName = doctor?.doctor?.name || 'N/A';
+  const displayEmail = doctor?.doctor?.email || 'N/A';
+  const profileImageSrc = doctor?.doctor?.profileImage || noProfileImage;
+  const verified = !!doctor?.doctor?.isVerified;
+  const unread = doctor?.doctor?.unreadMessages || 0;
 
   const logoColor = role === 'doctor' ? 'text-red-500' : 'text-green-500';
   const activeClass = role === 'doctor' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600';
@@ -86,7 +89,7 @@ const DoctorNavbar = () => {
           </div>
           <div className="mt-3 space-y-2">
             <Link to="/doctor/settings" className={`block w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100 ${role === 'doctor' ? '' : ''}`}>Settings</Link>
-            <button onClick={() => logout()} className={`w-full text-left text-sm px-3 py-2 ${role === 'doctor' ? 'text-red-600' : 'text-green-600'} rounded-md hover:bg-gray-100 flex items-center gap-2`}>
+            <button onClick={() => handleLogout()} className={`w-full text-left text-sm px-3 py-2 ${role === 'doctor' ? 'text-red-600' : 'text-green-600'} rounded-md hover:bg-gray-100 flex items-center gap-2`}>
               <FaSignOutAlt /> Logout
             </button>
           </div>
@@ -156,7 +159,7 @@ const DoctorNavbar = () => {
               </div>
               <div className="mt-3 space-y-2">
                 <Link to="/doctor/settings" className="block w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100" onClick={() => setMobileOpen(false)}>Settings</Link>
-                <button onClick={() => { logout(); setMobileOpen(false); }} className={`w-full text-left text-sm px-3 py-2 ${role === 'doctor' ? 'text-red-600' : 'text-green-600'} rounded-md hover:bg-gray-100 flex items-center gap-2`}>
+                <button onClick={() => { handleLogout(); setMobileOpen(false); }} className={`w-full text-left text-sm px-3 py-2 ${role === 'doctor' ? 'text-red-600' : 'text-green-600'} rounded-md hover:bg-gray-100 flex items-center gap-2`}>
                   <FaSignOutAlt /> Logout
                 </button>
               </div>
@@ -176,7 +179,7 @@ const DoctorNavbar = () => {
             <div className="py-2">
               <Link to="/doctor/dashboard" className="block px-4 py-2 text-sm hover:bg-gray-50">Dashboard</Link>
               <Link to="/doctor/settings" className="block px-4 py-2 text-sm hover:bg-gray-50">Settings</Link>
-              <button onClick={() => logout()} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"><FaSignOutAlt /> Logout</button>
+              <button onClick={() => handleLogout()} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"><FaSignOutAlt /> Logout</button>
             </div>
           </div>
         </div>
