@@ -99,3 +99,16 @@ exports.validateConfirmPaymentChatBody = (req, res, next) => {
 
   return next();
 };
+
+// NEW: POST /appointments/:appointmentId/reschedule (PATIENT)
+exports.validateRescheduleAppointment = (req, res, next) => {
+  const { appointmentId } = req.params;
+  const { patientId, date, time } = req.body || {};
+  
+  if (!appointmentId || !isObjectId(appointmentId)) return res.status(400).json({ success: false, message: "Invalid appointmentId" });
+  if (!patientId || !isObjectId(patientId)) return res.status(400).json({ success: false, message: "patientId is required" });
+  if (!date || !isYYYYMMDD(date)) return res.status(400).json({ success: false, message: "date is required (YYYY-MM-DD)" });
+  if (!time || !isHHMM(time)) return res.status(400).json({ success: false, message: "time is required (HH:mm)" });
+  
+  return next();
+};

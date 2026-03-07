@@ -1,7 +1,7 @@
 const Doctor = require('../Models/doctor.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { doctorRescheduleAppointment } = require('./appointmentContoller');
+const { doctorRescheduleAppointment } = require('./appointmentController');
 const ChatConnection = require('../Models/chatConnection.model');
 
 const SUPPORTED_CONSULTATION_TYPES = new Set(['chat', 'video', 'voice', 'in-person']);

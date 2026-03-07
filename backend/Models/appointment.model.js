@@ -21,12 +21,6 @@ const appointmentSchema = new mongoose.Schema(
       required: true
     },
 
-    // scheduled date/time for the appointment
-    scheduledAt: {
-      type: Date,
-      required: true
-    },
-
     // NEW: stable slot identity (avoid TZ issues in UI/cancel)
     date: { type: String, default: "" },      // YYYY-MM-DD
     startTime: { type: String, default: "" }, // HH:mm
@@ -74,9 +68,9 @@ const appointmentSchema = new mongoose.Schema(
 );
 
 // NEW: indexes for faster listing
-appointmentSchema.index({ patient: 1, scheduledAt: -1 });
-appointmentSchema.index({ doctor: 1, scheduledAt: -1 });
-appointmentSchema.index({ doctor: 1, status: 1, scheduledAt: 1 });
+appointmentSchema.index({ patient: 1, date: -1, startTime: -1 });
+appointmentSchema.index({ doctor: 1, date: -1, startTime: -1 });
+appointmentSchema.index({ doctor: 1, status: 1, date: 1, startTime: 1 });
 appointmentSchema.index({ doctor: 1, date: 1, startTime: 1, status: 1 }); // NEW
 
 // instance method: return safe public appointment object
@@ -90,19 +84,35 @@ appointmentSchema.methods.getPublicDetails = function () {
 // static: find appointments by patient id
 appointmentSchema.statics.findByPatient = function (patientId) {
   if (!patientId) return Promise.resolve([]);
-  return this.find({ patient: patientId }).sort({ scheduledAt: -1 });
+  return this.find({ patient: patientId }).sort({ date: -1, startTime: -1 });
 };
 
 // static: find upcoming appointments for a doctor
 appointmentSchema.statics.findUpcomingByDoctor = function (doctorId) {
   if (!doctorId) return Promise.resolve([]);
-  return this.find({ doctor: doctorId, scheduledAt: { $gte: new Date() }, status: "booked" }).sort({ scheduledAt: 1 });
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
+  const hh = String(now.getUTCHours()).padStart(2, "0");
+  const mm = String(now.getUTCMinutes()).padStart(2, "0");
+  const nowDate = `${y}-${m}-${d}`;
+  const nowTime = `${hh}:${mm}`;
+
+  return this.find({
+    doctor: doctorId,
+    status: "booked",
+    $or: [
+      { date: { $gt: nowDate } },
+      { date: nowDate, startTime: { $gte: nowTime } }
+    ]
+  }).sort({ date: 1, startTime: 1 });
 };
 
 // NEW: static find appointments by doctor id
 appointmentSchema.statics.findByDoctor = function (doctorId) {
   if (!doctorId) return Promise.resolve([]);
-  return this.find({ doctor: doctorId }).sort({ scheduledAt: -1 });
+  return this.find({ doctor: doctorId }).sort({ date: -1, startTime: -1 });
 };
 
 // NEW: cleaner JSON serialization for API responses
