@@ -1,13 +1,22 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useContext } from 'react';
 import axios from 'axios';
-import { usePatientContext } from '../../contexts/PatientContext';
+import { FaCalendarAlt, FaSearch, FaTimes } from 'react-icons/fa';
+import { PatientContext } from '../../contexts/PatientContext';
 import AppointmentCard from '../../patientComponent/AppointmentCard';
 import AppointmentDeatilsModel from '../../patientComponent/AppointmentDeatilsModel';
 import PatientNavbar from '../../patientComponent/PatientNavbar';
 
-const BookedAppointment = () => {
-  const { API_URL, patient, token } = usePatientContext();
+// Helper: Convert YYYY-MM-DD to DD/MM/YYYY
+const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr || typeof dateStr !== 'string') return '—';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
 
+const BookedAppointment = () => {
+  const {patient, token } = useContext(PatientContext);
+  // console.log(patient);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -20,19 +29,25 @@ const BookedAppointment = () => {
     return tkn ? { Authorization: `Bearer ${tkn}` } : {};
   }, [token]);
 
+  //fetech all apoointments of patient...
   const fetchAppointments = useCallback(async () => {
-    const patientId = patient?._id;
+    const patientId = patient?.patient?._id;
     if (!patientId) return;
 
     setLoading(true);
     setErr('');
     try {
-      const res = await axios.get(`${API_URL}/appointments/patient/${encodeURIComponent(patientId)}`, { headers: authHeaders });
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/appointments/patient/${encodeURIComponent(patientId)}`, { headers: authHeaders });
       const data = res?.data;
       const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
-      // "recent basis" default sort by scheduledAt desc
-      const sorted = [...list].sort((a, b) => new Date(b?.scheduledAt || 0) - new Date(a?.scheduledAt || 0));
+      // Sort by date desc, then by startTime desc for same-day appointments
+      const sorted = [...list].sort((a, b) => {
+        const dateA = a?.date || '';
+        const dateB = b?.date || '';
+        if (dateA !== dateB) return dateB.localeCompare(dateA);
+        return (b?.startTime || '').localeCompare(a?.startTime || '');
+      });
       setAppointments(sorted);
     } catch (e) {
       setErr(e?.response?.data?.message || e?.message || 'Something went wrong');
@@ -40,12 +55,13 @@ const BookedAppointment = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, authHeaders, patient?._id]);
+  }, [authHeaders, patient]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  //filter...
   const filtered = useMemo(() => {
     const now = Date.now();
     const isCancelled = (a) => (a?.status || '').toLowerCase() === 'cancelled';
@@ -78,10 +94,12 @@ const BookedAppointment = () => {
     const q = query.trim().toLowerCase();
     if (!q) return filtered;
     return filtered.filter((a) => {
-      const doctor = `${a?.doctorId?.name || ''} ${a?.doctor?.name || ''}`.toLowerCase();
-      const spec = `${a?.doctorId?.specialization || ''} ${a?.doctor?.specialization || ''}`.toLowerCase();
-      const clinic = `${a?.clinicName || ''} ${a?.clinic?.name || ''}`.toLowerCase();
-      return doctor.includes(q) || spec.includes(q) || clinic.includes(q);
+      const doctorObj = a?.doctor && typeof a.doctor === 'object' ? a.doctor : null;
+      const doctor = (doctorObj?.name || '').toLowerCase();
+      const spec = (doctorObj?.specialization || '').toLowerCase();
+      const type = (a?.type || '').toLowerCase();
+      const date = formatDateDDMMYYYY(a?.date).toLowerCase();
+      return doctor.includes(q) || spec.includes(q) || type.includes(q) || date.includes(q);
     });
   }, [filtered, query]);
 
@@ -109,16 +127,16 @@ const BookedAppointment = () => {
     <div className="min-h-screen bg-gray-50">
       <PatientNavbar />
 
-      {/* Layout: no left padding on mobile; add top padding for sticky header; keep sidebar offset on lg */}
       <main className="pt-16 lg:pt-6 lg:pl-64 px-4 sm:px-6 lg:px-8">
-        {/* Center + consistent vertical rhythm */}
         <div className="mx-auto max-w-7xl py-6 sm:py-8 space-y-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">My Appointments</h1>
-              <p className="mt-1 text-sm text-gray-600">Browse recent appointments, filter by status, and search by doctor or clinic.</p>
+            <h1 className="flex items-center gap-2 text-2xl sm:text-3xl font-bold text-gray-900">
+              <FaCalendarAlt className="text-green-600" />
+              My Appointments
+            </h1>
             </div>
-
+            {/* refresh button */}
             {!selected && (
               <div className="flex items-center gap-2">
                 <button
@@ -176,19 +194,22 @@ const BookedAppointment = () => {
               </div>
 
               {/* Search */}
-              <div className="relative w-full sm:w-80">
+              <div className="relative w-full sm:w-96">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <FaSearch />
+                </div>
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search doctor, specialty, or clinic..."
-                  className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                  placeholder="Search by doctor, specialty, type, or date..."
+                  className="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 py-2.5 text-sm shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20"
                 />
                 {query && (
                   <button
                     onClick={() => setQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
                   >
-                    Clear
+                    <FaTimes />
                   </button>
                 )}
               </div>

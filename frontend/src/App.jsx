@@ -9,13 +9,16 @@ import AppointmentBooking from "./pages/Patient/AppointmentBooking";
 import DoctorBookingProcess from "./pages/Patient/DoctorBookingProcess";
 import ChatPayment from "./component/ChatPayment";
 import ChatWithDoctor from "./pages/Patient/ChatWithDoctor";
+import Payment from "./component/Payment";
+import BookedAppointment from "./pages/Patient/BookedAppointment";
+
 
 import DoctorProtectedWrapper from "./ProtectWrapper/DoctorProtectedWrapper";
 import DoctorRegister from "./pages/Doctor/DoctorRegister";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard";
 import ChatWithPatient from "./pages/Doctor/ChatWithPatient";
+import Appointments from "./pages/Doctor/Appointments";
 
-// import Appointments from "./pages/Doctor/Appointments";
 // import OnePatientChat from "./pages/Doctor/OnePatientChat";
 // import VideoSessionManagement from "./pages/Doctor/VideoSessionManagement";
 // import VideoCall from "./doctorComponent/VideoCall";
@@ -26,8 +29,6 @@ import ChatWithPatient from "./pages/Doctor/ChatWithPatient";
 // import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
 // import Settings from "./pages/Doctor/Settings";
 // import VerifyEmailPage from "./component/VerifyEmailPage";
-// import Payment from "./component/Payment";
-// import BookedAppointment from "./pages/Patient/BookedAppointment";
 // import PatientVideoCall from "./pages/Patient/PatientVideoCall";
 
 const App = () => {
@@ -42,6 +43,8 @@ const App = () => {
         <Route path="/patient/appointments" element={<PatientProtectedWrapper><AppointmentBooking /></PatientProtectedWrapper>} />
         <Route path="/patient/chat-payment" element={<PatientProtectedWrapper><ChatPayment /></PatientProtectedWrapper>} />
         <Route path="/patient/chats" element={<PatientProtectedWrapper><ChatWithDoctor /></PatientProtectedWrapper>} />
+        <Route path="/patient/payment" element={<PatientProtectedWrapper><Payment /></PatientProtectedWrapper>} />
+        <Route path="/patient/booked-appointment" element={<PatientProtectedWrapper><BookedAppointment /></PatientProtectedWrapper>} />
 
 
 
@@ -50,16 +53,11 @@ const App = () => {
         <Route path="/doctor/dashboard" element={<DoctorProtectedWrapper><DoctorDashboard /></DoctorProtectedWrapper>} />
         <Route path="/patient/doctor/:doctorId/book" element={<PatientProtectedWrapper><DoctorBookingProcess /></PatientProtectedWrapper>} />
         <Route path="/doctor/chats" element={<DoctorProtectedWrapper><ChatWithPatient /></DoctorProtectedWrapper>} />
+        <Route path="/doctor/appointments" element={<DoctorProtectedWrapper><Appointments /></DoctorProtectedWrapper>} />
 
 
         {/* <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/patient/booked-appointment" element={<PatientProtectedWrapper><BookedAppointment /></PatientProtectedWrapper>} />
-        <Route path="/patient/payment" element={<PatientProtectedWrapper><Payment /></PatientProtectedWrapper>} />
-        <Route path="/patient/video-sessions" element={<PatientProtectedWrapper><PatientVideoCall /></PatientProtectedWrapper>} />
-        <Route path="/patient/video-call/:sessionId" element={<PatientProtectedWrapper><VideoCall /></PatientProtectedWrapper>} />
 
-        <Route path="/doctor/appointments" element={<DoctorProtectedWrapper><Appointments /></DoctorProtectedWrapper>} />
-        <Route path="/doctor/chat/:patientId" element={<DoctorProtectedWrapper><OnePatientChat /></DoctorProtectedWrapper>} />
         <Route path="/doctor/video-sessions" element={<DoctorProtectedWrapper><VideoSessionManagement /></DoctorProtectedWrapper>} />
         <Route path="/doctor/video-call/:sessionId" element={<DoctorProtectedWrapper><VideoCall /></DoctorProtectedWrapper>} />
         <Route path="/doctor/medicines" element={<DoctorProtectedWrapper><Medicines /></DoctorProtectedWrapper>} />

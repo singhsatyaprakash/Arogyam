@@ -1,14 +1,14 @@
 // Appointments.jsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import DoctorNavbar from '../../doctorComponent/DoctorNavbar';
 import { FaClock, FaUser } from 'react-icons/fa';
 import axios from 'axios';
-import { useDoctor } from '../../contexts/DoctorContext';
+import { DoctorContext } from '../../contexts/DoctorContext';
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:3000';
 
 const Appointments = () => {
-  const { doctor, token, isAuthenticated } = useDoctor();
+  const { doctor, token } = useContext(DoctorContext);
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState('all'); // all | booked | completed | cancelled
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ const Appointments = () => {
   );
 
   const fetchAppointments = useCallback(async () => {
-    if (!isAuthenticated || !token) return;
+    if (!token) return;
     setLoading(true);
     setErrMsg('');
     try {
@@ -32,7 +32,7 @@ const Appointments = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, token, authHeaders]);
+  }, [ token, authHeaders]);
 
   useEffect(() => {
     fetchAppointments();

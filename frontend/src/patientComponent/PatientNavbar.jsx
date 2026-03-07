@@ -102,7 +102,7 @@ const PatientNavbar = () => {
             </button>
             <Link to="/patient/dashboard" className="flex items-center gap-2">
               <FaUser className={`${logoColor} text-xl`} />
-              <span className="font-bold text-md text-gray-800">Doc<span className="text-green-500">Connect</span></span>
+              <span className="font-bold text-md text-gray-800">Aro<span className="text-green-500">gyam</span></span>
             </Link>
           </div>
 
@@ -123,7 +123,7 @@ const PatientNavbar = () => {
             <div className="h-16 flex items-center px-4 justify-between">
               <Link to="/patient/dashboard" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
                 <FaUser className={`${logoColor} text-2xl`} />
-                <span className="font-bold text-lg text-gray-800">Doc<span className="text-green-500">Connect</span></span>
+                <span className="font-bold text-lg text-gray-800">Aro<span className="text-green-500">gyam</span></span>
               </Link>
               <button onClick={() => setMobileOpen(false)} className="p-2"><FaTimes /></button>
             </div>
