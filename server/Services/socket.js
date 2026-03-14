@@ -7,19 +7,24 @@ let io;
 
 const initSocket = (server) => {
 
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "https://arogyam-swasthya.onrender.com",
+    "http://localhost:5173"
+  ];
+
   io = new Server(server, {
-      cors: {
-        origin: process.env.FRONTEND_URL,
-        methods: ["GET", "POST"],
-        credentials: true
-      }
-    });
-  //io-->for all sockets...
-  // socket--> for each individual socket connection...
+    cors: {
+      origin: allowedOrigins,
+      methods: ["GET", "POST"],
+      credentials: true
+    },
+    transports: ["websocket", "polling"]
+  });
+
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    // Chat socket section
     // join chat room
     socket.on("join_chat", ({ connectionId }) => {
       socket.join(connectionId);
@@ -31,15 +36,14 @@ const initSocket = (server) => {
       const { connectionId, senderId, senderType, text } = data;
 
       try {
-        // Validate required fields
+
         if (!connectionId || !senderId || !senderType || !text) {
           console.error("Invalid message data:", data);
           return;
         }
 
-        // Update or create chat history
         let chatHistory = await ChatHistory.findOne({ connectionId });
-        
+
         if (!chatHistory) {
           chatHistory = new ChatHistory({
             connectionId,
@@ -57,7 +61,6 @@ const initSocket = (server) => {
         chatHistory.messages.push(messageObj);
         await chatHistory.save();
 
-        // Update chat connection - increment message count and update activity
         await ChatConnection.findByIdAndUpdate(
           connectionId,
           {
@@ -67,8 +70,8 @@ const initSocket = (server) => {
           { new: true }
         );
 
-        // broadcast message to room
         io.to(connectionId).emit("receive_message", messageObj);
+
         console.log(`Message saved and broadcasted in room ${connectionId}`);
 
       } catch (err) {
@@ -82,7 +85,8 @@ const initSocket = (server) => {
       socket.leave(connectionId);
       console.log(`User ${socket.id} left room ${connectionId}`);
     });
-    // all video socket handlers
+
+    // attach video handlers
     attachVideoSocketHandlers(io, socket);
 
     socket.on("disconnect", () => {

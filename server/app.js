@@ -15,10 +15,23 @@ const { initSocket } = require('./Services/socket');
 const connectDB = require('./Config/db');
 connectDB();
 
-// CORS
+// Allowed origins
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://arogyam-swasthya.onrender.com",
+  "http://localhost:5173"
+];
+
+// CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
+  credentials: true
 };
 
 app.use(cors(corsOptions));
