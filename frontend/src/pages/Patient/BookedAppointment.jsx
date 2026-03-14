@@ -84,8 +84,25 @@ const BookedAppointment = () => {
           throw new Error("Missing appointment id.");
         }
 
+        const res = await axios.post(
+          `${API_URL}/videos/appointments/${appointment._id}/session/patient`,
+          {},
+          { headers: authHeaders }
+        );
+
+        if (!res?.data?.success || !res?.data?.data?._id) {
+          throw new Error(res?.data?.message || "Unable to prepare video session");
+        }
+
+        const sessionData = res.data.data;
+
         navigate(`/patient/video-call-lobby/${appointment._id}`, {
-          state: { appointment },
+          state: {
+            appointment: sessionData?.appointment || appointment,
+            session: sessionData,
+            doctor: sessionData?.doctor,
+            patient: sessionData?.patient,
+          },
         });
       } catch (error) {
         setErr(
@@ -95,7 +112,7 @@ const BookedAppointment = () => {
         );
       }
     },
-    [navigate]
+    [navigate, authHeaders]
   );
 
   useEffect(() => {

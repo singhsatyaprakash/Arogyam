@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { FaArrowLeft, FaClock, FaStethoscope, FaUserCircle, FaVideo } from "react-icons/fa";
 import PatientNavbar from "../../patientComponent/PatientNavbar";
+import { useSocket } from "../../contexts/SocketContext";
 
 const API_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 
@@ -10,21 +11,59 @@ const PatientVideoCallLobby = () => {
   const navigate = useNavigate();
   const { appointmentId } = useParams();
   const location = useLocation();
+  const socket = useSocket();
 
   const [appointment, setAppointment] = useState(location.state?.appointment || null);
-  const [doctor, setDoctor] = useState(null);
-  const [patient, setPatient] = useState(null);
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [doctor, setDoctor] = useState(location.state?.doctor || null);
+  const [patient, setPatient] = useState(location.state?.patient || null);
+  const [session, setSession] = useState(location.state?.session || null);
+  const [loading, setLoading] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const [err, setErr] = useState("");
+  const callPayloadRef = useRef(null);
 
   const authHeaders = useMemo(() => {
     const token = localStorage.getItem("token") || localStorage.getItem("patientToken");
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
+  const socketCommunication = useCallback(
+    (sessionData) => {
+      if (!socket || !sessionData?._id || !sessionData?.roomId) return;
+
+      socket.emit("room:join", {
+        sessionId: sessionData._id,
+        roomId: sessionData.roomId,
+      });
+    },
+    [socket]
+  );
+
+  const handleJoinedRoom = useCallback(
+    () => {
+      const callPayload =
+        callPayloadRef.current || { role: "patient", session, appointment, doctor, patient };
+
+      if (!callPayload?.session?._id) {
+        setIsJoining(false);
+        setErr("Session is not ready yet. Please try again.");
+        return;
+      }
+
+      navigate(`/patient/video-call/${callPayload.session._id}`, {
+        state: callPayload,
+      });
+
+      setIsJoining(false);
+    },
+    [navigate, session, appointment, doctor, patient]
+  );
+
   const handleSession = useCallback(async () => {
-    if (!appointmentId) return;
+    if (!appointmentId) {
+      setErr("No appointment selected.");
+      return;
+    }
 
     setLoading(true);
     setErr("");
@@ -44,6 +83,14 @@ const PatientVideoCallLobby = () => {
       setAppointment(activeSession.appointment);
       setDoctor(activeSession.doctor);
       setPatient(activeSession.patient);
+
+      callPayloadRef.current = {
+        role: "patient",
+        session: activeSession,
+        appointment: activeSession.appointment,
+        doctor: activeSession.doctor,
+        patient: activeSession.patient,
+      };
     } catch (e) {
       setErr(e?.response?.data?.message || e?.message || "Failed to prepare video session");
     } finally {
@@ -52,22 +99,48 @@ const PatientVideoCallLobby = () => {
   }, [appointmentId, authHeaders]);
 
   useEffect(() => {
-    if (!appointmentId) {
-      setErr("No appointment selected.");
-      setLoading(false);
+    if (!socket) {
+      setErr("Socket connection error. Please reload and try again.");
       return;
     }
+
     handleSession();
-  }, [appointmentId, handleSession]);
+  }, [socket, handleSession]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("room:joined", handleJoinedRoom);
+    return () => {
+      socket.off("room:joined", handleJoinedRoom);
+    };
+  }, [socket, handleJoinedRoom]);
 
   const startCall = () => {
-    if (!session?._id) return;
-    const role = localStorage.getItem("role") || "patient";
+    if (!session?.roomId || !session?._id) {
+      setErr("Session is not ready yet. Please try again in a moment.");
+      return;
+    }
 
-    navigate(`/patient/video-call/${session._id}`, {
-      state: { role, session, appointment, doctor, patient },
-    });
+    setIsJoining(true);
+    callPayloadRef.current = {
+      role: "patient",
+      session,
+      appointment,
+      doctor,
+      patient,
+    };
+
+    socketCommunication(session);
   };
+
+  const formattedDate = appointment?.date
+    ? new Date(appointment.date).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "NA";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,7 +186,7 @@ const PatientVideoCallLobby = () => {
                     <FaStethoscope /> {doctor?.specialization || "Specialization not available"}
                   </p>
                   <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-                    <FaClock /> {appointment?.date} | {appointment?.startTime} - {appointment?.endTime}
+                    <FaClock /> {formattedDate} | {appointment?.startTime} - {appointment?.endTime}
                   </p>
                 </div>
               </div>
@@ -121,10 +194,10 @@ const PatientVideoCallLobby = () => {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={startCall}
-                  disabled={!session?._id}
+                  disabled={!session?.roomId || isJoining}
                   className="inline-flex items-center gap-2 rounded-md bg-green-600 px-5 py-2.5 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <FaVideo /> Join Video Call
+                  <FaVideo /> {isJoining ? "Joining..." : "Join Video Call"}
                 </button>
               </div>
             </>
