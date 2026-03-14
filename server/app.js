@@ -44,6 +44,9 @@ const appointmentRoutes = require('./Routes/appointmentRoutes');
 const chatRoutes = require('./Routes/chatRoutes');
 const videoRoutes = require('./Routes/videoRoutes');
 
+app.get('/',(req,res)=>{
+  res.send("<h1><a href='https://arogyam-swasthya.onrender.com/'>Click Here...</a><p>@abhiyanta_cse</p></h1>");
+});
 app.use('/patients', patientRoutes);
 app.use('/doctors', doctorRoutes);
 app.use('/appointments', appointmentRoutes);
