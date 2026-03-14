@@ -626,11 +626,26 @@ exports.cancelAppointment = async (req, res) => {
 
     // Release booked slot so doctor can rebook
     if (appt.doctor && appt.date && appt.startTime) {
-      await DoctorDaySchedule.updateOne(
+      const releaseResult = await DoctorDaySchedule.updateOne(
         { doctor: appt.doctor, date: String(appt.date) },
         { $pull: { bookedSlots: { time: String(appt.startTime) } } }
       );
+      
+      console.log("Slot release result:", {
+        doctorId: appt.doctor,
+        date: appt.date,
+        time: appt.startTime,
+        matchedCount: releaseResult.matchedCount,
+        modifiedCount: releaseResult.modifiedCount
+      });
+
+      if (releaseResult.matchedCount === 0) {
+        console.warn("No DoctorDaySchedule found for slot release");
+      } else if (releaseResult.modifiedCount === 0) {
+        console.warn("Slot not found in bookedSlots array - may have already been released");
+      }
     }
+
 
     return res.json({ success: true, message: "Appointment cancelled successfully", data: appt.getPublicDetails() });
   } catch (err) {
@@ -708,6 +723,29 @@ exports.closeChat = async (req, res) => {
 
 
 //doctor endpoints...
+
+// GET /appointments/doctor/:doctorId/list - Simple fetch without auth
+exports.getAppointmentsByDoctorId = async (req, res) => {
+  try {
+    const doctorId = req.params.doctorId;
+    if (!doctorId) {
+      return res.status(400).json({ success: false, message: "Doctor ID required" });
+    }
+    const doctor = await Doctor.findById(doctorId).lean();
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+    }
+    const appointments = await Appointment.find({ doctor: doctorId })
+      .populate('patient', 'name email phone')
+      .sort({ date: -1, startTime: -1 })
+      .lean();
+
+    return res.json({ success: true, data: appointments });
+  } catch (err) {
+    console.error("getAppointmentsByDoctorId error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 // GET /appointments/doctor/me?status=all|booked|cancelled|completed
 exports.getDoctorAppointments = async (req, res) => {

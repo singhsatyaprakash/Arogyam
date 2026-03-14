@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const ChatHistory = require("../Models/chatHistory.model");
 const ChatConnection = require("../Models/chatConnection.model");
+const { attachVideoSocketHandlers } = require("./videoSocket");
 
 let io;
 
@@ -12,10 +13,12 @@ const initSocket = (server) => {
       credentials: true
     }
   });
-
+  //io-->for all sockets...
+  // socket--> for each individual socket connection...
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
+    // Chat socket section
     // join chat room
     socket.on("join_chat", ({ connectionId }) => {
       socket.join(connectionId);
@@ -78,6 +81,8 @@ const initSocket = (server) => {
       socket.leave(connectionId);
       console.log(`User ${socket.id} left room ${connectionId}`);
     });
+    // all video socket handlers
+    attachVideoSocketHandlers(io, socket);
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id);

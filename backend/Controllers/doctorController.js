@@ -90,7 +90,7 @@ const registerDoctor = async (req, res) => {
 
     await doctor.save();
 
-    const token = jwt.sign({Id: doctor._id, email: doctor.email, role: 'doctor' }, process.env.JWT_SECRET || 'your_jwt_secret_key_here' ,{ expiresIn: '7d' });
+    const token = jwt.sign({id: doctor._id, email: doctor.email, role: 'doctor' }, process.env.JWT_SECRET || 'your_jwt_secret_key_here' ,{ expiresIn: '7d' });
     delete doctor.password;
     res.status(201).json({success: true,message: 'Doctor registered successfully',data:{doctor,token}});
 

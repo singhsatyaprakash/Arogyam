@@ -29,11 +29,13 @@ const doctorRoutes = require('./Routes/doctorRoutes');
 const patientRoutes = require('./Routes/patientRoutes');
 const appointmentRoutes = require('./Routes/appointmentRoutes');
 const chatRoutes = require('./Routes/chatRoutes');
+const videoRoutes = require('./Routes/videoRoutes');
 
 app.use('/patients', patientRoutes);
 app.use('/doctors', doctorRoutes);
 app.use('/appointments', appointmentRoutes);
 app.use('/chats', chatRoutes);
+app.use('/videos', videoRoutes);
 
 // initialize socket
 initSocket(server);

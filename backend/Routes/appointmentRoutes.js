@@ -11,10 +11,17 @@ router.get('/availability',appointmentController.getAvailability);
 //add a middleware for payement verfication..
 router.post('/confirm-payment',appointmentController.confirmPayment);
 
-router.get('/doctor/me',doctorMiddleware.authenticateDoctor,appointmentController.getDoctorAppointments);
+router.get('/patient/:patientId',appointmentMiddleware.validatePatientAppointmentsParams,appointmentController.getPatientAppointments);
 
-// Upcoming (booked + date/startTime >= now UTC)
-router.get('/doctor/me/upcoming',doctorMiddleware.authenticateDoctor,appointmentController.getDoctorUpcomingAppointments);
+// NEW: cancel appointment (also releases slot)
+router.post('/:appointmentId/cancel',appointmentMiddleware.validateCancelAppointment,appointmentController.cancelAppointment);
+
+// NEW: reschedule appointment (PATIENT)
+router.post('/:appointmentId/reschedule',appointmentMiddleware.validateRescheduleAppointment,appointmentController.rescheduleAppointment);
+
+
+// Simple route to get appointments by doctor ID (no auth required)
+router.get('/doctor/:doctorId/list', appointmentController.getAppointmentsByDoctorId);
 
 // Doctor cancels (also releases slot)
 router.post('/:appointmentId/doctor-cancel',doctorMiddleware.authenticateDoctor,appointmentController.doctorCancelAppointment);
@@ -22,7 +29,7 @@ router.post('/:appointmentId/doctor-cancel',doctorMiddleware.authenticateDoctor,
 // Doctor reschedules (reserve new slot, update appt, release old slot)
 router.post('/:appointmentId/doctor-reschedule',doctorMiddleware.authenticateDoctor,appointmentController.doctorRescheduleAppointment);
 
-// Public single doctor by id (MUST stay after /doctor/me)
+// Public single doctor by id
 router.get('/doctor/:id', appointmentController.getDoctor);
 
 
@@ -36,12 +43,5 @@ router.post('/chat/:chatId/close',appointmentController.closeChat);
 
 
 
-router.get('/patient/:patientId',appointmentMiddleware.validatePatientAppointmentsParams,appointmentController.getPatientAppointments);
-
-// NEW: cancel appointment (also releases slot)
-router.post('/:appointmentId/cancel',appointmentMiddleware.validateCancelAppointment,appointmentController.cancelAppointment);
-
-// NEW: reschedule appointment (PATIENT)
-router.post('/:appointmentId/reschedule',appointmentMiddleware.validateRescheduleAppointment,appointmentController.rescheduleAppointment);
 
 module.exports = router;
