@@ -11,20 +11,20 @@ const VideoConsultationRoom = ({ role }) => {
 
   const myVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const localStreamRef = useRef(null);
 
-  const handleUserJoined = useCallback(({ sessionId, socketId }) => {
-    console.log("User joined:", socketId);
-    setRemoteSocketId(socketId);
-  }, []);
-
-  const handleCallUser = useCallback(async () => {
+  const handleCallUser = useCallback(async (targetSocketId) => {
     try {
+      const targetId = targetSocketId || remoteSocketId;
+      if (!targetId) return;
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
 
       setMyStream(stream);
+      localStreamRef.current = stream;
 
       // add tracks first
       stream.getTracks().forEach((track) => {
@@ -34,7 +34,7 @@ const VideoConsultationRoom = ({ role }) => {
       const offer = await peer.getOffer();
 
       socket.emit("user:call", {
-        to: remoteSocketId,
+        to: targetId,
         offer,
       });
 
@@ -42,6 +42,18 @@ const VideoConsultationRoom = ({ role }) => {
       console.error(err);
     }
   }, [remoteSocketId, socket]);
+
+  const handleUserJoined = useCallback(({ socketId }) => {
+    console.log("User joined:", socketId);
+    setRemoteSocketId(socketId);
+
+    if (role === "doctor") {
+      // Doctor initiates offer as soon as patient joins the room.
+      setTimeout(() => {
+        handleCallUser(socketId);
+      }, 0);
+    }
+  }, [role, handleCallUser]);
 
   const handleIncomingCall = useCallback(
     async ({ from, offer }) => {
@@ -53,6 +65,7 @@ const VideoConsultationRoom = ({ role }) => {
       });
 
       setMyStream(stream);
+      localStreamRef.current = stream;
 
       stream.getTracks().forEach((track) => {
         peer.peer.addTrack(track, stream);
@@ -72,15 +85,10 @@ const VideoConsultationRoom = ({ role }) => {
     peer.setLocalDescription(ans);
   }, []);
 
-  // auto call
-  useEffect(() => {
-    if (remoteSocketId && role === "doctor") {
-      handleCallUser();
-    }
-  }, [remoteSocketId, handleCallUser, role]);
-
   // negotiation
   const handleNegoNeeded = useCallback(async () => {
+    if (!remoteSocketId) return;
+
     const offer = await peer.getOffer();
 
     socket.emit("peer:nego:needed", {
@@ -89,14 +97,21 @@ const VideoConsultationRoom = ({ role }) => {
     });
   }, [remoteSocketId, socket]);
 
-  const handleNegoIncoming=useCallback(async({from, offer})=>{
-    const ans=peer.getAnswer(offer);
-    socket.emit('peer:nego:done',{to:from,ans});    
+  const handleNegoIncoming = useCallback(async ({ from, offer }) => {
+    const ans = await peer.getAnswer(offer);
+    socket.emit("peer:nego:done", { to: from, ans });
   },[socket]);
-  
-  const handleNegoFinal=useCallback(async({ans})=>{
+
+  const handleNegoFinal = useCallback(async ({ ans }) => {
     await peer.setLocalDescription(ans);
-  },[socket]);
+  }, []);
+
+  const handleICECandidate = useCallback(({ candidate }) => {
+    if (!candidate) return;
+    peer.peer.addIceCandidate(candidate).catch((err) => {
+      console.error("Error adding remote ICE candidate", err);
+    });
+  }, []);
 
   useEffect(() => {
     peer.peer.addEventListener("negotiationneeded", handleNegoNeeded);
@@ -106,12 +121,35 @@ const VideoConsultationRoom = ({ role }) => {
     };
   }, [handleNegoNeeded]);
 
+  useEffect(() => {
+    const handleIceCandidate = (event) => {
+      if (event.candidate && remoteSocketId) {
+        socket.emit("peer:ice:candidate", {
+          to: remoteSocketId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    peer.peer.addEventListener("icecandidate", handleIceCandidate);
+
+    return () => {
+      peer.peer.removeEventListener("icecandidate", handleIceCandidate);
+    };
+  }, [socket, remoteSocketId]);
+
   // receive remote stream
   useEffect(() => {
-    peer.peer.addEventListener("track", (ev) => {
+    const handleTrack = (ev) => {
       const [stream] = ev.streams;
       setRemoteStream(stream);
-    });
+    };
+
+    peer.peer.addEventListener("track", handleTrack);
+
+    return () => {
+      peer.peer.removeEventListener("track", handleTrack);
+    };
   }, []);
 
   // socket listeners
@@ -121,6 +159,7 @@ const VideoConsultationRoom = ({ role }) => {
     socket.on("call:accepted", handleCallAccepted);
     socket.on("peer:nego:needed",handleNegoIncoming);
     socket.on("peer:nego:final",handleNegoFinal);
+    socket.on("peer:ice:candidate", handleICECandidate);
 
     return () => {
       socket.off("user:joined", handleUserJoined);
@@ -128,8 +167,9 @@ const VideoConsultationRoom = ({ role }) => {
       socket.off("call:accepted", handleCallAccepted);
       socket.off("peer:nego:needed", handleNegoIncoming);
       socket.off("peer:nego:final",handleNegoFinal);
+      socket.off("peer:ice:candidate", handleICECandidate);
     };
-  }, [socket, handleUserJoined, handleIncomingCall, handleCallAccepted,handleNegoIncoming,handleNegoFinal]);
+  }, [socket, handleUserJoined, handleIncomingCall, handleCallAccepted,handleNegoIncoming,handleNegoFinal, handleICECandidate]);
 
   // attach local stream
   useEffect(() => {
@@ -144,6 +184,14 @@ const VideoConsultationRoom = ({ role }) => {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   return (
     <div>
