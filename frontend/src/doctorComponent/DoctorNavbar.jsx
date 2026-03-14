@@ -1,4 +1,5 @@
-import { FaUserMd, FaCalendarAlt, FaComments, FaUsers, FaVideo, FaCog, FaSignOutAlt, FaChevronDown, FaBars, FaTimes, FaHome, FaFileMedical, FaLightbulb, FaPills, FaCheckCircle } from "react-icons/fa";
+import { FaUserMd, FaCalendarAlt, FaComments, FaUsers, FaVideo, FaSignOutAlt, FaChevronDown, FaBars, FaTimes,FaMicrophone, FaHome, FaFileMedical, FaLightbulb, FaPills, FaCheckCircle } from "react-icons/fa";
+import { MdOutlineSettings } from "react-icons/md";
 import { NavLink, Link } from "react-router-dom";
 import { useState, useEffect, useContext } from "react";
 import noProfileImage from "../assets/noProfile.webp";
@@ -39,13 +40,15 @@ const DoctorNavbar = () => {
     { path: "/doctor/dashboard", label: "Dashboard", icon: FaHome },
     { path: "/doctor/appointments", label: "Appointments", icon: FaCalendarAlt },
     { path: "/doctor/chats", label: "Patient Chats", icon: FaComments, badge: unread },
-    { path: "/doctor/video-sessions", label: "Video Calls", icon: FaVideo },
+    { path: "/doctor/voice-calls", label: "Voice Calls", icon: FaMicrophone },
+    { path: "/doctor/video-calls", label: "Video Calls", icon: FaVideo },
     { path: "/doctor/medicines", label: "Medications", icon: FaPills },
     { path: "/doctor/notes", label: "Notes", icon: FaFileMedical },
     { path: "/doctor/case-studies", label: "Case Studies", icon: FaUsers },
     { path: "/doctor/share-ideas", label: "Share Ideas", icon: FaLightbulb },
+    { path: "/doctor/settings", label: "Settings", icon: MdOutlineSettings },
   ];
-
+  
   const linkBase = "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition";
 
   return (

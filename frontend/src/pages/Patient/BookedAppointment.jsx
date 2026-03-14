@@ -1,191 +1,250 @@
-import React, { useEffect, useMemo, useState, useCallback, useContext } from 'react';
-import axios from 'axios';
-import { FaCalendarAlt, FaSearch, FaTimes } from 'react-icons/fa';
-import { PatientContext } from '../../contexts/PatientContext';
-import AppointmentCard from '../../patientComponent/AppointmentCard';
-import AppointmentDeatilsModel from '../../patientComponent/AppointmentDeatilsModel';
-import PatientNavbar from '../../patientComponent/PatientNavbar';
+import React, { useEffect, useMemo, useState, useCallback, useContext } from "react";
+import axios from "axios";
+import { FaCalendarAlt, FaSearch, FaTimes } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { PatientContext } from "../../contexts/PatientContext";
+import AppointmentCard from "../../patientComponent/AppointmentCard";
+import AppointmentDeatilsModel from "../../patientComponent/AppointmentDeatilsModel";
+import PatientNavbar from "../../patientComponent/PatientNavbar";
 
-// Helper: Convert YYYY-MM-DD to DD/MM/YYYY
-const formatDateDDMMYYYY = (dateStr) => {
-  if (!dateStr || typeof dateStr !== 'string') return '—';
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+/* ---------------- HELPERS ---------------- */
+
+const getAppointmentTime = (a) => {
+  if (!a?.date || !a?.startTime) return 0;
+  return new Date(`${a.date}T${a.startTime}`).getTime();
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+/* ---------------- COMPONENT ---------------- */
+
 const BookedAppointment = () => {
-  const {patient, token } = useContext(PatientContext);
-  // console.log(patient);
+  const { patient, token } = useContext(PatientContext);
+  const navigate = useNavigate();
+
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState("");
   const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState('upcoming'); // upcoming | past | cancelled | all
-  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState("upcoming");
+  const [query, setQuery] = useState("");
 
   const authHeaders = useMemo(() => {
-    const tkn = token || localStorage.getItem('token');
+    const tkn = token || localStorage.getItem("token");
     return tkn ? { Authorization: `Bearer ${tkn}` } : {};
   }, [token]);
 
-  //fetech all apoointments of patient...
+  /* ---------------- FETCH ---------------- */
+
   const fetchAppointments = useCallback(async () => {
     const patientId = patient?.patient?._id;
     if (!patientId) return;
 
     setLoading(true);
-    setErr('');
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/appointments/patient/${encodeURIComponent(patientId)}`, { headers: authHeaders });
-      const data = res?.data;
-      const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+    setErr("");
 
-      // Sort by date desc, then by startTime desc for same-day appointments
-      const sorted = [...list].sort((a, b) => {
-        const dateA = a?.date || '';
-        const dateB = b?.date || '';
-        if (dateA !== dateB) return dateB.localeCompare(dateA);
-        return (b?.startTime || '').localeCompare(a?.startTime || '');
-      });
+    try {
+      const res = await axios.get(
+        `${API_URL}/appointments/patient/${patientId}`,
+        { headers: authHeaders }
+      );
+
+      const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+
+      const sorted = [...list].sort(
+        (a, b) => getAppointmentTime(b) - getAppointmentTime(a)
+      );
+
       setAppointments(sorted);
     } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || 'Something went wrong');
-      setAppointments([]);
+      setErr(e?.response?.data?.message || "Failed to load appointments");
     } finally {
       setLoading(false);
     }
   }, [authHeaders, patient]);
 
+  const joinVideoCall = useCallback(
+    async (appointment) => {
+      if (appointment?.type !== "video") {
+        setErr("Only video appointments can open the consultation room.");
+        return;
+      }
+
+      try {
+        if (!appointment?._id) {
+          throw new Error("Missing appointment id.");
+        }
+
+        navigate(`/patient/video-call-lobby/${appointment._id}`, {
+          state: { appointment },
+        });
+      } catch (error) {
+        setErr(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to open video consultation room"
+        );
+      }
+    },
+    [navigate]
+  );
+
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  //filter...
+  /* ---------------- FILTER ---------------- */
+
   const filtered = useMemo(() => {
     const now = Date.now();
-    const isCancelled = (a) => (a?.status || '').toLowerCase() === 'cancelled';
-    const isBooked = (a) => (a?.status || '').toLowerCase() === 'booked';
-    const when = (a) => new Date(a?.scheduledAt || 0).getTime();
 
-    const base = appointments;
+    return appointments.filter((a) => {
+      const time = getAppointmentTime(a);
+      const status = (a?.status || "").toLowerCase();
 
-    if (filter === 'cancelled') return base.filter(isCancelled);
-    if (filter === 'all') return base;
+      if (filter === "cancelled") return status === "cancelled";
 
-    if (filter === 'upcoming') {
-      // only booked upcoming; sort soonest first for usability
-      return base
-        .filter((a) => isBooked(a) && when(a) >= now)
-        .sort((a, b) => when(a) - when(b));
-    }
+      if (filter === "upcoming")
+        return status === "booked" && time >= now;
 
-    if (filter === 'past') {
-      // past includes completed + booked-in-past (if any)
-      return base
-        .filter((a) => !isCancelled(a) && when(a) < now)
-        .sort((a, b) => when(b) - when(a));
-    }
+      if (filter === "past")
+        return status !== "cancelled" && time < now;
 
-    return base;
+      return true;
+    });
   }, [appointments, filter]);
 
+  /* ---------------- SEARCH ---------------- */
+
   const filteredByQuery = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.toLowerCase().trim();
     if (!q) return filtered;
+
     return filtered.filter((a) => {
-      const doctorObj = a?.doctor && typeof a.doctor === 'object' ? a.doctor : null;
-      const doctor = (doctorObj?.name || '').toLowerCase();
-      const spec = (doctorObj?.specialization || '').toLowerCase();
-      const type = (a?.type || '').toLowerCase();
-      const date = formatDateDDMMYYYY(a?.date).toLowerCase();
-      return doctor.includes(q) || spec.includes(q) || type.includes(q) || date.includes(q);
+      const doctor = (a?.doctor?.name || "").toLowerCase();
+      const spec = (a?.doctor?.specialization || "").toLowerCase();
+      const type = (a?.type || "").toLowerCase();
+      const date = formatDate(a?.date).toLowerCase();
+
+      return (
+        doctor.includes(q) ||
+        spec.includes(q) ||
+        type.includes(q) ||
+        date.includes(q)
+      );
     });
   }, [filtered, query]);
 
+  /* ---------------- COUNTS ---------------- */
+
   const counts = useMemo(() => {
     const now = Date.now();
-    const isCancelled = (a) => (a?.status || '').toLowerCase() === 'cancelled';
-    const isBooked = (a) => (a?.status || '').toLowerCase() === 'booked';
-    const when = (a) => new Date(a?.scheduledAt || 0).getTime();
+
     return {
-      upcoming: appointments.filter((a) => isBooked(a) && when(a) >= now).length,
-      past: appointments.filter((a) => !isCancelled(a) && when(a) < now).length,
-      cancelled: appointments.filter(isCancelled).length,
-      all: appointments.length
+      upcoming: appointments.filter(
+        (a) =>
+          a.status === "booked" &&
+          getAppointmentTime(a) >= now
+      ).length,
+
+      past: appointments.filter(
+        (a) =>
+          a.status !== "cancelled" &&
+          getAppointmentTime(a) < now
+      ).length,
+
+      cancelled: appointments.filter(
+        (a) => a.status === "cancelled"
+      ).length,
+
+      all: appointments.length,
     };
   }, [appointments]);
 
   const tabs = [
-    { key: 'upcoming', label: 'Upcoming', count: counts.upcoming },
-    { key: 'past', label: 'Past', count: counts.past },
-    { key: 'cancelled', label: 'Cancelled', count: counts.cancelled },
-    { key: 'all', label: 'All', count: counts.all }
+    { key: "upcoming", label: "Upcoming", count: counts.upcoming },
+    { key: "past", label: "Past", count: counts.past },
+    { key: "cancelled", label: "Cancelled", count: counts.cancelled },
+    { key: "all", label: "All", count: counts.all },
   ];
+
+  /* ---------------- UI ---------------- */
 
   return (
     <div className="min-h-screen bg-gray-50">
       <PatientNavbar />
 
-      <main className="pt-16 lg:pt-6 lg:pl-64 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl py-6 sm:py-8 space-y-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-            <h1 className="flex items-center gap-2 text-2xl sm:text-3xl font-bold text-gray-900">
+      <main className="pt-16 lg:pt-6 lg:ml-64 px-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-7xl py-8 space-y-6">
+
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900">
               <FaCalendarAlt className="text-green-600" />
               My Appointments
             </h1>
-            </div>
-            {/* refresh button */}
+
             {!selected && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={fetchAppointments}
-                  disabled={loading}
-                  className="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
-              </div>
+              <button
+                onClick={fetchAppointments}
+                disabled={loading}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              >
+                {loading ? "Refreshing..." : "Refresh"}
+              </button>
             )}
           </div>
 
-          {/* Quick stats + Search */}
+          {/* Stats */}
           {!selected && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {tabs.map((t) => (
                 <button
                   key={t.key}
                   onClick={() => setFilter(t.key)}
-                  className={[
-                    "rounded-lg border bg-white p-4 text-left transition hover:shadow-sm",
-                    filter === t.key ? "border-green-600 ring-1 ring-green-600/30" : "border-gray-200"
-                  ].join(' ')}
+                  className={`bg-white border rounded-lg p-4 text-left transition hover:shadow ${
+                    filter === t.key
+                      ? "border-green-600 ring-1 ring-green-600"
+                      : "border-gray-200"
+                  }`}
                 >
                   <div className="text-sm text-gray-500">{t.label}</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{t.count}</div>
+                  <div className="text-2xl font-bold">{t.count}</div>
                 </button>
               ))}
             </div>
           )}
 
+          {/* Tabs + Search */}
           {!selected && (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {/* Tabs (pill-style) */}
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-between gap-4">
+
+              {/* Tabs */}
+              <div className="flex gap-2 flex-wrap">
                 {tabs.map((t) => {
                   const active = filter === t.key;
+
                   return (
                     <button
                       key={t.key}
                       onClick={() => setFilter(t.key)}
-                      className={[
-                        "rounded-full px-4 py-2 text-sm font-medium border transition",
-                        active ? "bg-green-600 text-white border-green-600" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                      ].join(' ')}
+                      className={`px-4 py-2 rounded-full border text-sm ${
+                        active
+                          ? "bg-green-600 text-white"
+                          : "bg-white text-gray-700"
+                      }`}
                     >
                       {t.label}
-                      <span className={["ml-2 rounded-full px-2 py-0.5 text-xs", active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-700"].join(' ')}>
+                      <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded-full">
                         {t.count}
                       </span>
                     </button>
@@ -195,19 +254,19 @@ const BookedAppointment = () => {
 
               {/* Search */}
               <div className="relative w-full sm:w-96">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <FaSearch />
-                </div>
+                <FaSearch className="absolute left-3 top-3 text-gray-400" />
+
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by doctor, specialty, type, or date..."
-                  className="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 py-2.5 text-sm shadow-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                  placeholder="Search doctor, specialty, type..."
+                  className="w-full border rounded-lg pl-10 pr-10 py-2.5 text-sm"
                 />
+
                 {query && (
                   <button
-                    onClick={() => setQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                    onClick={() => setQuery("")}
+                    className="absolute right-3 top-3 text-gray-400"
                   >
                     <FaTimes />
                   </button>
@@ -216,67 +275,55 @@ const BookedAppointment = () => {
             </div>
           )}
 
+          {/* Error */}
           {err && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="bg-red-50 border border-red-200 p-4 text-red-700 rounded">
               {err}
             </div>
           )}
 
-          <div>
-            {loading && !selected && (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="animate-pulse rounded-lg border border-gray-200 bg-white p-4">
-                    <div className="h-4 w-2/3 rounded bg-gray-200" />
-                    <div className="mt-3 h-3 w-1/2 rounded bg-gray-200" />
-                    <div className="mt-6 h-8 w-full rounded bg-gray-100" />
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Empty */}
+          {!loading && filteredByQuery.length === 0 && !selected && (
+            <div className="bg-white border rounded-lg p-6 text-center">
+              <p className="font-medium">No appointments found</p>
 
-            {/* Details view (same page): hide grid when selected */}
-            {selected && (
-              <AppointmentDeatilsModel
-                open={true}
-                appointment={selected}
-                onClose={() => setSelected(null)}
-                onUpdated={() => {
-                  setSelected(null);
-                  fetchAppointments();
+              <button
+                onClick={() => {
+                  setFilter("upcoming");
+                  setQuery("");
                 }}
-                onCancelled={() => {
-                  setSelected(null);
-                  fetchAppointments();
-                }}
-              />
-            )}
+                className="mt-4 border px-4 py-2 rounded-md"
+              >
+                Reset filters
+              </button>
+            </div>
+          )}
 
-            {!selected && !loading && filteredByQuery.length === 0 && (
-              <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-                <div className="text-gray-900 font-medium">No appointments found</div>
-                <div className="mt-1 text-sm text-gray-600">Try another filter or search term.</div>
-                <button
-                  onClick={() => { setFilter('upcoming'); setQuery(''); }}
-                  className="mt-4 inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Reset filters
-                </button>
-              </div>
-            )}
+          {/* Details Modal */}
+          {selected && (
+            <AppointmentDeatilsModel
+              open={true}
+              appointment={selected}
+              onJoinVideo={joinVideoCall}
+              onClose={() => setSelected(null)}
+              onUpdated={fetchAppointments}
+              onCancelled={fetchAppointments}
+            />
+          )}
 
-            {!selected && !loading && (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredByQuery.map((appt) => (
-                  <AppointmentCard
-                    key={appt?._id || `${appt?.date}-${appt?.startTime}`}
-                    appointment={appt}
-                    onView={() => setSelected(appt)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Cards */}
+          {!selected && !loading && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredByQuery.map((appt) => (
+                <AppointmentCard
+                  key={appt._id}
+                  appointment={appt}
+                  onJoinVideo={joinVideoCall}
+                  onView={() => setSelected(appt)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

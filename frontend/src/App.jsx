@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
+
 import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
 import PatientRegister from "./pages/Patient/PatientRegister";
 import PatientDashboard from "./pages/Patient/PatientDashboard";
@@ -11,6 +12,9 @@ import ChatPayment from "./component/ChatPayment";
 import ChatWithDoctor from "./pages/Patient/ChatWithDoctor";
 import Payment from "./component/Payment";
 import BookedAppointment from "./pages/Patient/BookedAppointment";
+import PatientVideoCallLobby from "./pages/Patient/PatientVideoCallLobby";
+import VideoCallPateintSide from "./patientComponent/VideoCallPateintSide";
+import VideoCallWithDoctorHistory from "./pages/Patient/VideoCallWithDoctorHistory";
 
 
 import DoctorProtectedWrapper from "./ProtectWrapper/DoctorProtectedWrapper";
@@ -18,6 +22,10 @@ import DoctorRegister from "./pages/Doctor/DoctorRegister";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard";
 import ChatWithPatient from "./pages/Doctor/ChatWithPatient";
 import Appointments from "./pages/Doctor/Appointments";
+import DoctorVideoCallLobby from "./pages/Doctor/DoctorVideoCallLobby";
+import VideoCallDoctorSide from "./doctorComponent/VideoCallDoctorSide";
+import VideoCallWithPatientHistory from "./pages/Doctor/VideoCallWithPatientHistory";
+
 
 // import OnePatientChat from "./pages/Doctor/OnePatientChat";
 // import VideoSessionManagement from "./pages/Doctor/VideoSessionManagement";
@@ -45,6 +53,10 @@ const App = () => {
         <Route path="/patient/chats" element={<PatientProtectedWrapper><ChatWithDoctor /></PatientProtectedWrapper>} />
         <Route path="/patient/payment" element={<PatientProtectedWrapper><Payment /></PatientProtectedWrapper>} />
         <Route path="/patient/booked-appointment" element={<PatientProtectedWrapper><BookedAppointment /></PatientProtectedWrapper>} />
+        <Route path="/patient/video-call-lobby/:appointmentId" element={<PatientProtectedWrapper><PatientVideoCallLobby /></PatientProtectedWrapper>} />
+        <Route path="/patient/video-call/:sessionId" element={<PatientProtectedWrapper><VideoCallPateintSide /></PatientProtectedWrapper>} />
+        <Route path="/patient/video-calls" element={<PatientProtectedWrapper><VideoCallWithDoctorHistory/></PatientProtectedWrapper>} />
+
 
 
 
@@ -54,12 +66,15 @@ const App = () => {
         <Route path="/patient/doctor/:doctorId/book" element={<PatientProtectedWrapper><DoctorBookingProcess /></PatientProtectedWrapper>} />
         <Route path="/doctor/chats" element={<DoctorProtectedWrapper><ChatWithPatient /></DoctorProtectedWrapper>} />
         <Route path="/doctor/appointments" element={<DoctorProtectedWrapper><Appointments /></DoctorProtectedWrapper>} />
+        <Route path="/doctor/video-call-lobby/:appointmentId" element={<DoctorProtectedWrapper><DoctorVideoCallLobby /></DoctorProtectedWrapper>} />
+        <Route path="/doctor/video-call/:roomId" element={<DoctorProtectedWrapper><VideoCallDoctorSide/></DoctorProtectedWrapper>} />
+        {/* <Route path="/doctor/video-call/:sessionId" element={<DoctorProtectedWrapper><VideoCallDoctorSide/></DoctorProtectedWrapper>} /> */}
+        <Route path="/doctor/video-calls" element={<DoctorProtectedWrapper><VideoCallWithPatientHistory/></DoctorProtectedWrapper>} />
 
 
         {/* <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         <Route path="/doctor/video-sessions" element={<DoctorProtectedWrapper><VideoSessionManagement /></DoctorProtectedWrapper>} />
-        <Route path="/doctor/video-call/:sessionId" element={<DoctorProtectedWrapper><VideoCall /></DoctorProtectedWrapper>} />
         <Route path="/doctor/medicines" element={<DoctorProtectedWrapper><Medicines /></DoctorProtectedWrapper>} />
         <Route path="/doctor/notes" element={<DoctorProtectedWrapper><Notes /></DoctorProtectedWrapper>} />
         <Route path="/doctor/case-studies" element={<DoctorProtectedWrapper><CaseStudies /></DoctorProtectedWrapper>} />

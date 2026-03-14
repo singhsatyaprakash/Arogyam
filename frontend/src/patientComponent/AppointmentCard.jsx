@@ -19,7 +19,7 @@ const formatTime12Hour = (timeStr) => {
   return `${hour12}:${mm} ${period}`;
 };
 
-const AppointmentCard = ({ appointment, onView }) => {
+const AppointmentCard = ({ appointment, onView, onJoinVideo }) => {
   const doctor = appointment?.doctor;
   const doctorName = useMemo(() => {
     if (!doctor) return 'Doctor';
@@ -34,6 +34,7 @@ const AppointmentCard = ({ appointment, onView }) => {
 
   const type = (appointment?.type || '—').toString();
   const status = (appointment?.status || '—').toLowerCase();
+  const canJoinVideo = type === 'video' && status === 'booked' && typeof onJoinVideo === 'function';
   
   const date = formatDateDDMMYYYY(appointment?.date);
   const startTime = formatTime12Hour(appointment?.startTime);
@@ -100,12 +101,23 @@ const AppointmentCard = ({ appointment, onView }) => {
       </div>
 
       {/* Action button */}
-      <button
-        onClick={onView}
-        className="mt-4 w-full inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors duration-200 shadow-sm"
-      >
-        View Details →
-      </button>
+      <div className="mt-4 flex gap-2">
+        {canJoinVideo && (
+          <button
+            onClick={() => onJoinVideo(appointment)}
+            className="inline-flex flex-1 items-center justify-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-700 transition-colors duration-200 shadow-sm"
+          >
+            Join Video
+          </button>
+        )}
+
+        <button
+          onClick={onView}
+          className={`inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors duration-200 shadow-sm ${canJoinVideo ? 'flex-1 border border-green-200 bg-white text-green-700 hover:bg-green-50' : 'w-full bg-green-600 text-white hover:bg-green-700'}`}
+        >
+          View Details →
+        </button>
+      </div>
     </div>
   );
 };

@@ -22,7 +22,7 @@ const formatTime12Hour = (timeStr) => {
   return `${hour12}:${mm} ${period}`;
 };
 
-const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUpdated }) => {
+const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUpdated, onJoinVideo }) => {
   console.log(appointment);
   const {token, patient } = useContext(PatientContext);
   const [busy, setBusy] = useState(false);
@@ -48,6 +48,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
 
   const apptStatus = (appointment?.status || '').toLowerCase();
   const isCancelled = apptStatus === 'cancelled';
+  const canJoinVideo = appointment?.type === 'video' && apptStatus === 'booked' && typeof onJoinVideo === 'function';
 
   const doctor = appointment?.doctor && typeof appointment.doctor === 'object' ? appointment.doctor : null;
 
@@ -188,6 +189,16 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
         </button>
 
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
+          {canJoinVideo && (
+            <button
+              onClick={() => onJoinVideo(appointment)}
+              disabled={busy}
+              className="inline-flex w-fit items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            >
+              Join video call
+            </button>
+          )}
+
           {/* NEW: Reschedule */}
           {(appointment?.status || '').toLowerCase() === 'booked' && (
             <button

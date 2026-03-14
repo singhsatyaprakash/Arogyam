@@ -4,8 +4,10 @@ import { DoctorContext } from '../contexts/DoctorContext'
 
 const DoctorProtectedWrapper = ({ children }) => {
   const { doctor } = useContext(DoctorContext);
+  const token = localStorage.getItem('token') || localStorage.getItem('doctorToken');
+  const role = localStorage.getItem('role');
   
-  if (!doctor) {
+  if (!doctor && !(token && role === 'doctor')) {
     return <Navigate to="/doctor/login" replace />
   }
   
