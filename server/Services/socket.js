@@ -8,11 +8,12 @@ let io;
 const initSocket = (server) => {
 
   io = new Server(server, {
-    cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
-      credentials: true
-    }
-  });
+      cors: {
+        origin: process.env.FRONTEND_URL,
+        methods: ["GET", "POST"],
+        credentials: true
+      }
+    });
   //io-->for all sockets...
   // socket--> for each individual socket connection...
   io.on("connection", (socket) => {
