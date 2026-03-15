@@ -1,0 +1,216 @@
+/* ==========================================
+   ADD MEDICINE TO PATIENT LIST STYLES
+   ========================================== */
+
+.medicine-container {
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.medicine-container h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #e2e8f0;
+}
+
+/* ==========================================
+   TABLE STYLES
+   ========================================== */
+
+.MuiTableContainer-root {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.MuiTable-root {
+  width: 100%;
+}
+
+.MuiTableCell-root {
+  padding: 12px 16px;
+  border: none;
+  font-size: 13px;
+}
+
+.MuiTableCell-head {
+  background: rgba(15, 23, 42, 0.7) !important;
+}
+
+.MuiTableRow-root:last-child .MuiTableCell-root {
+  border-bottom: none;
+}
+
+/* ==========================================
+   EMPTY STATE
+   ========================================== */
+
+.medicine-container > div:last-child {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 8px;
+  border: 1px dashed rgba(100, 116, 139, 0.3);
+  color: #64748b;
+}
+
+.medicine-container > div:last-child p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ==========================================
+   BUTTON STYLES
+   ========================================== */
+
+.MuiButton-contained {
+  box-shadow: none !important;
+  transition: all 0.3s ease;
+}
+
+.MuiButton-contained:hover {
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+  transform: translateY(-2px);
+}
+
+/* ==========================================
+   ICON BUTTON STYLES
+   ========================================== */
+
+.MuiIconButton-root {
+  color: #ef4444;
+  transition: all 0.2s ease;
+}
+
+.MuiIconButton-root:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* ==========================================
+   TEXT FIELD STYLES
+   ========================================== */
+
+.MuiTextField-root {
+  width: 100%;
+}
+
+.MuiOutlinedInput-root {
+  background: rgba(51, 65, 85, 0.3);
+  transition: all 0.2s ease;
+}
+
+.MuiOutlinedInput-root.Mui-focused {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.MuiInputLabel-shrink {
+  color: #3b82f6 !important;
+}
+
+/* ==========================================
+   DIALOG STYLES
+   ========================================== */
+
+.MuiDialog-paper {
+  border-radius: 12px !important;
+}
+
+.MuiDialogTitle-root {
+  background: rgba(15, 23, 42, 0.5);
+  color: white !important;
+  font-weight: 600;
+  padding: 20px;
+}
+
+.MuiDialogContent-root {
+  color: white;
+  padding: 24px;
+}
+
+.MuiDialogActions-root {
+  padding: 16px 24px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+
+@media (max-width: 768px) {
+  .medicine-container {
+    padding: 12px;
+  }
+
+  .MuiTableCell-root {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .MuiTable-root {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .medicine-container {
+    padding: 8px;
+  }
+
+  .MuiTableCell-root {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .MuiButton-root {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.MuiTableRow-root {
+  animation: slideIn 0.3s ease;
+}
+
+/* ==========================================
+   SCROLLBAR STYLES
+   ========================================== */
+
+.MuiTableContainer-root {
+  scrollbar-color: rgba(51, 65, 85, 0.6) rgba(51, 65, 85, 0.2);
+  scrollbar-width: thin;
+}
+
+.MuiTableContainer-root::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.MuiTableContainer-root::-webkit-scrollbar-track {
+  background: rgba(51, 65, 85, 0.2);
+}
+
+.MuiTableContainer-root::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 4px;
+}
+
+.MuiTableContainer-root::-webkit-scrollbar-thumb:hover {
+  background: rgba(51, 65, 85, 0.8);
+}

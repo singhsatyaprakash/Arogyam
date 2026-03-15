@@ -1,0 +1,135 @@
+/* Import Tailwind's base, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom component classes using @apply */
+.video-room-container {
+  @apply relative w-full h-screen bg-black text-white overflow-hidden flex flex-col;
+}
+
+.video-header {
+  @apply absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent;
+}
+
+.header-left {
+  @apply flex items-center space-x-4;
+}
+
+.header-title {
+  @apply text-white font-semibold text-lg;
+}
+
+.connection-chip {
+  @apply capitalize;
+}
+
+.header-right {
+  @apply text-gray-300 font-mono;
+}
+
+.video-main-container {
+  @apply flex-1 relative bg-gray-900;
+}
+
+/* Layout: PIP */
+.pip-main-container {
+  @apply relative w-full h-full;
+}
+.remote-video-main {
+  @apply w-full h-full object-cover;
+}
+.local-video-pip-box {
+  @apply absolute bottom-6 right-6 w-48 h-36 rounded-xl overflow-hidden border-2 border-white shadow-2xl;
+}
+.local-video-pip-box video {
+  @apply w-full h-full object-cover;
+}
+.local-video-pip-box.camera-off {
+  @apply bg-gray-800 border-gray-600;
+}
+
+/* Layout: Split */
+.split-view-container {
+  @apply flex w-full h-full;
+}
+.split-video {
+  @apply relative flex-1 m-1 rounded-xl overflow-hidden bg-gray-800;
+}
+.split-video-element {
+  @apply w-full h-full object-cover;
+}
+.video-label {
+  @apply absolute top-3 left-3 z-10 bg-black/60 text-white px-3 py-1 rounded-full text-sm;
+}
+
+/* Layout: Fullscreen */
+.fullscreen-view {
+  @apply relative w-full h-full;
+}
+.remote-video-full {
+  @apply w-full h-full object-cover;
+}
+.local-video-pip-box {
+  /* reuse same style as PIP */
+}
+
+/* Profile placeholders */
+.profile-placeholder {
+  @apply flex flex-col items-center justify-center bg-gray-800 text-gray-400;
+}
+.profile-placeholder.large {
+  @apply w-full h-full;
+}
+.profile-placeholder.split {
+  @apply w-full h-full;
+}
+.profile-placeholder.small {
+  @apply w-48 h-36 rounded-xl;
+}
+.placeholder-name {
+  @apply text-xl font-medium mt-4;
+}
+.placeholder-sub {
+  @apply text-sm text-gray-500;
+}
+
+/* Control panel */
+.video-controls-panel {
+  @apply absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4 bg-gradient-to-t from-black/90 to-transparent;
+}
+.controls-left,
+.controls-center,
+.controls-right {
+  @apply flex items-center space-x-3;
+}
+.control-btn {
+  @apply bg-gray-700/80 text-white hover:bg-gray-600 transition-colors !important;
+}
+.control-btn.active {
+  @apply bg-green-600 hover:bg-green-700 !important;
+}
+.control-btn.inactive {
+  @apply bg-red-600 hover:bg-red-700 !important;
+}
+.control-btn.end-call {
+  @apply bg-red-600 hover:bg-red-700 rotate-135 !important;
+}
+
+/* Note textarea */
+.note-textarea {
+  @apply w-full min-h-[150px] p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .local-video-pip-box {
+    @apply w-32 h-24 bottom-4 right-4;
+  }
+  .video-controls-panel {
+    @apply px-3 py-2;
+  }
+  .control-btn {
+    @apply p-2 !important;
+  }
+}
