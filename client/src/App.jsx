@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Help from "./pages/Help";
 
 
 import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
@@ -25,6 +28,11 @@ import Appointments from "./pages/Doctor/Appointments";
 import DoctorVideoCallLobby from "./pages/Doctor/DoctorVideoCallLobby";
 import VideoCallDoctorSide from "./doctorComponent/VideoCallDoctorSide";
 import VideoCallWithPatientHistory from "./pages/Doctor/VideoCallWithPatientHistory";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndCondition from "./pages/TermsAndCondition";
+import Careers from "./pages/Careers.JSX";
+
+
 
 
 // import OnePatientChat from "./pages/Doctor/OnePatientChat";
@@ -44,6 +52,12 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact/>} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsAndCondition />} />
+        <Route path="/careers" element={<Careers />} />
 
         {/* patient routes */}
         <Route path="/register/patient" element={<PatientRegister />} />
