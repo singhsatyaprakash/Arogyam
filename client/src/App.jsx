@@ -4,7 +4,7 @@ import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Help from "./pages/Help";
-
+import Careers from "./pages/Careers.jsx";
 
 import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
 import PatientRegister from "./pages/Patient/PatientRegister";
@@ -30,7 +30,7 @@ import VideoCallDoctorSide from "./doctorComponent/VideoCallDoctorSide";
 import VideoCallWithPatientHistory from "./pages/Doctor/VideoCallWithPatientHistory";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndCondition from "./pages/TermsAndCondition";
-import Careers from "./pages/Careers.JSX";
+
 
 
 
