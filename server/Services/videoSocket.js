@@ -1,69 +1,68 @@
+const sessionIdToSocketIdMap = new Map();
+const socketIdToSessionIdMap = new Map();
 
-const sessionIdToSocketIdMap= new Map();
-const socketIdToSessionIdMap=new Map();
 const attachVideoSocketHandlers = (io, socket) => {
-  //io-->for all sockets, socket-->for current socket
 
-  socket.on("room:join",(data)=>{
-    const {sessionId,roomId}=data;
-    console.log(sessionId,roomId);
-    sessionIdToSocketIdMap.set(sessionId,socket.id);
-    socketIdToSessionIdMap.set(socket.id,sessionId);
-    io.to(roomId).emit("user:joined", {sessionId, socketId: socket.id});
+  socket.on("room:join", (data) => {
+    const { sessionId, roomId } = data;
+
+    sessionIdToSocketIdMap.set(sessionId, socket.id);
+    socketIdToSessionIdMap.set(socket.id, sessionId);
+
+    // Join FIRST, then broadcast
     socket.join(roomId);
-    io.to(socket.id).emit("room:joined",{data});
-  });
-  
-  socket.on('user:call',({to,offer})=>{
-    io.to(to).emit("incoming:call",{from: socket.id,offer});
+
+    // Notify only OTHER users in the room (not self)
+    socket.to(roomId).emit("user:joined", { sessionId, socketId: socket.id });
+
+    // Send the new user a list of who is already in the room
+    const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
+    const existingUsers = [];
+
+    if (socketsInRoom) {
+      for (const sid of socketsInRoom) {
+        if (sid !== socket.id) {
+          existingUsers.push({
+            socketId: sid,
+            sessionId: socketIdToSessionIdMap.get(sid),
+          });
+        }
+      }
+    }
+
+    io.to(socket.id).emit("room:joined", { data, existingUsers });
   });
 
-  socket.on("call:answer",({to,ans})=>{
-    io.to(to).emit("call:accepted", {from: socket.id, ans});
+  socket.on("user:call", ({ to, offer }) => {
+    io.to(to).emit("incoming:call", { from: socket.id, offer });
   });
 
-  socket.on("peer:nego:needed",({to,offer})=>{
-    io.to(to).emit("peer:nego:needed", {from: socket.id, offer});
+  socket.on("call:answer", ({ to, ans }) => {
+    io.to(to).emit("call:accepted", { from: socket.id, ans });
   });
 
-  socket.on("peer:nego:done",({to,ans})=>{
-    io.to(to).emit("peer:nego:final", {from: socket.id, ans});
+  socket.on("peer:nego:needed", ({ to, offer }) => {
+    io.to(to).emit("peer:nego:needed", { from: socket.id, offer });
+  });
+
+  socket.on("peer:nego:done", ({ to, ans }) => {
+    io.to(to).emit("peer:nego:final", { from: socket.id, ans });
   });
 
   socket.on("peer:ice:candidate", ({ to, candidate }) => {
     if (!to || !candidate) return;
     io.to(to).emit("peer:ice:candidate", { from: socket.id, candidate });
   });
-  
 
 
-
-
-}
+  socket.on("disconnect", () => {
+    const sessionId = socketIdToSessionIdMap.get(socket.id);
+    if (sessionId) sessionIdToSocketIdMap.delete(sessionId);
+    socketIdToSessionIdMap.delete(socket.id);
+  });
+};
 
 module.exports = { attachVideoSocketHandlers };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // const activeVideoRooms = new Map();

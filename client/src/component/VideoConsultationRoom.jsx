@@ -113,6 +113,25 @@ const VideoConsultationRoom = ({ role, session }) => {
       console.error("Error adding remote ICE candidate", err);
     });
   }, []);
+    // socket listeners
+  useEffect(() => {
+    socket.on("user:joined", handleUserJoined);
+    socket.on("incoming:call", handleIncomingCall);
+    socket.on("call:accepted", handleCallAccepted);
+    socket.on("peer:nego:needed",handleNegoIncoming);
+    socket.on("peer:nego:final",handleNegoFinal);
+    socket.on("peer:ice:candidate", handleICECandidate);
+
+    return () => {
+      socket.off("user:joined", handleUserJoined);
+      socket.off("incoming:call", handleIncomingCall);
+      socket.off("call:accepted", handleCallAccepted);
+      socket.off("peer:nego:needed", handleNegoIncoming);
+      socket.off("peer:nego:final",handleNegoFinal);
+      socket.off("peer:ice:candidate", handleICECandidate);
+    };
+  }, [socket, handleUserJoined, handleIncomingCall, handleCallAccepted,handleNegoIncoming,handleNegoFinal, handleICECandidate]);
+
 
   useEffect(() => {
     peer.peer.addEventListener("negotiationneeded", handleNegoNeeded);
@@ -121,6 +140,7 @@ const VideoConsultationRoom = ({ role, session }) => {
       peer.peer.removeEventListener("negotiationneeded", handleNegoNeeded);
     };
   }, [handleNegoNeeded]);
+  
 
   useEffect(() => {
     const handleIceCandidate = (event) => {
@@ -153,24 +173,6 @@ const VideoConsultationRoom = ({ role, session }) => {
     };
   }, []);
 
-  // socket listeners
-  useEffect(() => {
-    socket.on("user:joined", handleUserJoined);
-    socket.on("incoming:call", handleIncomingCall);
-    socket.on("call:accepted", handleCallAccepted);
-    socket.on("peer:nego:needed",handleNegoIncoming);
-    socket.on("peer:nego:final",handleNegoFinal);
-    socket.on("peer:ice:candidate", handleICECandidate);
-
-    return () => {
-      socket.off("user:joined", handleUserJoined);
-      socket.off("incoming:call", handleIncomingCall);
-      socket.off("call:accepted", handleCallAccepted);
-      socket.off("peer:nego:needed", handleNegoIncoming);
-      socket.off("peer:nego:final",handleNegoFinal);
-      socket.off("peer:ice:candidate", handleICECandidate);
-    };
-  }, [socket, handleUserJoined, handleIncomingCall, handleCallAccepted,handleNegoIncoming,handleNegoFinal, handleICECandidate]);
 
   // attach local stream
   useEffect(() => {
