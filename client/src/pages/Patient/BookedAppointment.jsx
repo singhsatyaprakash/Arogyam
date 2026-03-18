@@ -74,43 +74,55 @@ const BookedAppointment = () => {
 
   const joinVideoCall = useCallback(
     async (appointment) => {
-      if (appointment?.type !== "video") {
-        setErr("Only video appointments can open the consultation room.");
-        return;
+      if(appointment?.type == "video") {
+      navigate(`/patient/video-call-lobby/${appointment._id}`, {
+        state: { appointment },
+      });
+      return;
       }
 
-      try {
-        if (!appointment?._id) {
-          throw new Error("Missing appointment id.");
-        }
+      else if(appointment?.type === "in-person") {
+      alert("In-person appointment started. Please proceed with the consultation.");
+      return;
+    }
 
-        const res = await axios.post(
-          `${API_URL}/videos/appointments/${appointment._id}/session/patient`,
-          {},
-          { headers: authHeaders }
-        );
+    else if(appointment?.type === "voice") {
+      alert("Voice appointment started. Please proceed with the consultation.");
+      return;
+    }
 
-        if (!res?.data?.success || !res?.data?.data?._id) {
-          throw new Error(res?.data?.message || "Unable to prepare video session");
-        }
+      // try {
+      //   if (!appointment?._id) {
+      //     throw new Error("Missing appointment id.");
+      //   }
 
-        const sessionData = res.data.data;
+      //   const res = await axios.post(
+      //     `${API_URL}/videos/appointments/${appointment._id}/session/patient`,
+      //     {},
+      //     { headers: authHeaders }
+      //   );
 
-        navigate(`/patient/video-call-lobby/${appointment._id}`, {
-          state: {
-            appointment: sessionData?.appointment || appointment,
-            session: sessionData,
-            doctor: sessionData?.doctor,
-            patient: sessionData?.patient,
-          },
-        });
-      } catch (error) {
-        setErr(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Unable to open video consultation room"
-        );
-      }
+      //   if (!res?.data?.success || !res?.data?.data?._id) {
+      //     throw new Error(res?.data?.message || "Unable to prepare video session");
+      //   }
+
+      //   const sessionData = res.data.data;
+
+      //   navigate(`/patient/video-call-lobby/${appointment._id}`, {
+      //     state: {
+      //       appointment: sessionData?.appointment || appointment,
+      //       session: sessionData,
+      //       doctor: sessionData?.doctor,
+      //       patient: sessionData?.patient,
+      //     },
+      //   });
+      // } catch (error) {
+      //   setErr(
+      //     error?.response?.data?.message ||
+      //       error?.message ||
+      //       "Unable to open video consultation room"
+      //   );
+      // }
     },
     [navigate, authHeaders]
   );

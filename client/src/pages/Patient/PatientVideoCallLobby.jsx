@@ -49,8 +49,8 @@ const PatientVideoCallLobby = () => {
         setErr("Session is not ready yet. Please try again.");
         return;
       }
-
-      navigate(`/patient/video-call/${callPayload.session._id}`, {
+      console.log(callPayload);
+      navigate(`/patient/video-call/${callPayload.session.roomId}`, {
         state: callPayload,
       });
 

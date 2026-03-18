@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import peer from "../services/peer";
 
-const VideoConsultationRoom = ({ role }) => {
+const VideoConsultationRoom = ({ role, session }) => {
+  console.log(session);
   const socket = useSocket();
 
   const [remoteSocketId, setRemoteSocketId] = useState(null);
@@ -57,40 +58,32 @@ const VideoConsultationRoom = ({ role }) => {
 
   const handleIncomingCall = useCallback(
     async ({ from, offer }) => {
-      try {
-        setRemoteSocketId(from);
+      setRemoteSocketId(from);
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
 
-        setMyStream(stream);
-        localStreamRef.current = stream;
+      setMyStream(stream);
+      localStreamRef.current = stream;
 
-        stream.getTracks().forEach((track) => {
-          peer.peer.addTrack(track, stream);
-        });
+      stream.getTracks().forEach((track) => {
+        peer.peer.addTrack(track, stream);
+      });
 
-        const ans = await peer.getAnswer(offer);
+      const ans = await peer.getAnswer(offer);
 
-        socket.emit("call:answer", {
-          to: from,
-          ans,
-        });
-      } catch (err) {
-        console.error("Error handling incoming call:", err);
-      }
+      socket.emit("call:answer", {
+        to: from,
+        ans,
+      });
     },
     [socket]
   );
 
-  const handleCallAccepted = useCallback(async ({ ans }) => {
-    try {
-      await peer.setLocalDescription(ans);
-    } catch (err) {
-      console.error("Error setting answer:", err);
-    }
+  const handleCallAccepted = useCallback(({ ans }) => {
+    peer.setLocalDescription(ans);
   }, []);
 
   // negotiation
@@ -106,20 +99,12 @@ const VideoConsultationRoom = ({ role }) => {
   }, [remoteSocketId, socket]);
 
   const handleNegoIncoming = useCallback(async ({ from, offer }) => {
-    try {
-      const ans = await peer.getAnswer(offer);
-      socket.emit("peer:nego:done", { to: from, ans });
-    } catch (err) {
-      console.error("Error in negotiation incoming:", err);
-    }
-  }, [socket]);
+    const ans = await peer.getAnswer(offer);
+    socket.emit("peer:nego:done", { to: from, ans });
+  },[socket]);
 
   const handleNegoFinal = useCallback(async ({ ans }) => {
-    try {
-      await peer.setLocalDescription(ans);
-    } catch (err) {
-      console.error("Error in negotiation final:", err);
-    }
+    await peer.setLocalDescription(ans);
   }, []);
 
   const handleICECandidate = useCallback(({ candidate }) => {
@@ -157,11 +142,8 @@ const VideoConsultationRoom = ({ role }) => {
   // receive remote stream
   useEffect(() => {
     const handleTrack = (ev) => {
-      console.log("Track received:", ev);
       const [stream] = ev.streams;
-      if (stream) {
-        setRemoteStream(stream);
-      }
+      setRemoteStream(stream);
     };
 
     peer.peer.addEventListener("track", handleTrack);

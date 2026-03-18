@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Arogyam – स्वास्थ्य | API Server</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0d1f0d, #1a3d1a, #2d1a1a);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #e8f5e9;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 22px;
+      padding: 52px 44px;
+      max-width: 520px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+
+    .logo-icon {
+      font-size: 3.2rem;
+      color: #e53935;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 10px rgba(229,57,53,0.45));
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #ffffff;
+    }
+
+    h1 span {
+      color: #66bb6a;
+    }
+
+    .tagline {
+      margin-top: 8px;
+      font-size: 0.93rem;
+      color: #a5d6a7;
+      letter-spacing: 0.4px;
+    }
+
+    .divider {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, #e53935, #66bb6a);
+      border-radius: 2px;
+      margin: 22px auto;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(102,187,106,0.12);
+      border: 1px solid rgba(102,187,106,0.4);
+      border-radius: 40px;
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      color: #66bb6a;
+      margin-bottom: 26px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      background: #66bb6a;
+      border-radius: 50%;
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(102,187,106,0.7); }
+      50%       { box-shadow: 0 0 0 7px rgba(102,187,106,0); }
+    }
+
+    .description {
+      font-size: 0.92rem;
+      color: #c8e6c9;
+      line-height: 1.75;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, #e53935, #b71c1c);
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 50px;
+      text-decoration: none;
+      letter-spacing: 0.4px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 6px 22px rgba(229,57,53,0.45);
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(229,57,53,0.6);
+    }
+
+    /* Contact / Social */
+    .contact-label {
+      margin-top: 30px;
+      margin-bottom: 12px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #81c784;
+    }
+
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .social-links a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      font-size: 1.15rem;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .social-links a:hover {
+      transform: translateY(-3px);
+    }
+
+    .social-links a.instagram { background: #833ab4; color: #fff; }
+    .social-links a.instagram:hover { box-shadow: 0 6px 20px rgba(131,58,180,0.6); }
+
+    .social-links a.facebook  { background: #1877f2; color: #fff; }
+    .social-links a.facebook:hover  { box-shadow: 0 6px 20px rgba(24,119,242,0.6); }
+
+    .social-links a.telegram  { background: #0088cc; color: #fff; }
+    .social-links a.telegram:hover  { box-shadow: 0 6px 20px rgba(0,136,204,0.6); }
+
+    .social-links a.whatsapp  { background: #25d366; color: #fff; }
+    .social-links a.whatsapp:hover  { box-shadow: 0 6px 20px rgba(37,211,102,0.6); }
+
+    .social-links a.email     { background: #e53935; color: #fff; }
+    .social-links a.email:hover     { box-shadow: 0 6px 20px rgba(229,57,53,0.6); }
+
+    .footer {
+      margin-top: 28px;
+      font-size: 0.78rem;
+      color: #558b57;
+    }
+
+    .footer a {
+      color: #81c784;
+      text-decoration: none;
+    }
+
+    .footer i {
+      color: #e53935;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="logo-icon">
+      <i class="fa-solid fa-stethoscope"></i>
+    </div>
+
+    <h1>Arogyam <span>स्वास्थ्य</span></h1>
+    <p class="tagline">Healthcare &nbsp;·&nbsp; Appointments &nbsp;·&nbsp; Teleconsultation</p>
+
+    <div class="divider"></div>
+
+    <div class="status-badge">
+      <span class="dot"></span>
+      Backend Server is Running
+    </div>
+
+    <p class="description">
+      This is the <strong>REST API &amp; Socket server</strong> for Arogyam स्वास्थ्य.<br/>
+      To access the full application, please visit the frontend below.
+    </p>
+
+    <a class="btn" href="https://arogyam-swasthya.onrender.com/" target="_blank" rel="noopener noreferrer">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      Open Application
+    </a>
+
+    <p class="contact-label">Connect with us</p>
+
+    <div class="social-links">
+      <a class="instagram" href="https://instagram.com/abhiyanta_cse" target="_blank" rel="noopener noreferrer" title="Instagram">
+        <i class="fa-brands fa-instagram"></i>
+      </a>
+      <a class="facebook" href="https://facebook.com/" target="_blank" rel="noopener noreferrer" title="Facebook">
+        <i class="fa-brands fa-facebook-f"></i>
+      </a>
+      <a class="telegram" href="https://t.me/" target="_blank" rel="noopener noreferrer" title="Telegram">
+        <i class="fa-brands fa-telegram"></i>
+      </a>
+      <a class="whatsapp" href="https://wa.me/" target="_blank" rel="noopener noreferrer" title="WhatsApp">
+        <i class="fa-brands fa-whatsapp"></i>
+      </a>
+      <a class="email" href="mailto:contact@arogyam.com" title="Email">
+        <i class="fa-solid fa-envelope"></i>
+      </a>
+    </div>
+
+    <div class="footer">
+      Built with <i class="fa-solid fa-heart"></i> by
+      <a href="https://github.com/singhsatyaprakash" target="_blank" rel="noopener noreferrer">@abhiyanta_cse</a>
+    </div>
+
+  </div>
+</body>
+</html>

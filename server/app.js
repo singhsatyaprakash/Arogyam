@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
+const path = require('path');
 
 dotenv.config();
 
@@ -45,7 +46,7 @@ const chatRoutes = require('./Routes/chatRoutes');
 const videoRoutes = require('./Routes/videoRoutes');
 
 app.get('/',(req,res)=>{
-  res.send("<h1><a href='https://arogyam-swasthya.onrender.com/'>Click Here...</a><p>@abhiyanta_cse</p></h1>");
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 app.use('/patients', patientRoutes);
 app.use('/doctors', doctorRoutes);
