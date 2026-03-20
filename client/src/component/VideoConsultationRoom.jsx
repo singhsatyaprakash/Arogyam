@@ -1,10 +1,28 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import peer from "../services/peer";
-
+import "./VideoConsultationRoom.css";
+import VideoNavbar from "./VideoNavbar";
+import { VideoFunctionality } from "./VideoFunctionality";
 const VideoConsultationRoom = ({ role, session }) => {
   console.log(session);
   const socket = useSocket();
+
+  const getParticipantName = (participant, fallback) => {
+    if (!participant) return fallback;
+    return (
+      participant.name ||
+      participant.fullName ||
+      participant.firstName ||
+      participant.username ||
+      fallback
+    );
+  };
+
+  const doctorName = getParticipantName(session?.doctor, "Doctor");
+  const patientName = getParticipantName(session?.patient, "Patient");
+  const myName = role === "doctor" ? doctorName : patientName;
+  const remoteName = role === "doctor" ? patientName : doctorName;
 
   const [remoteSocketId, setRemoteSocketId] = useState(null);
   const [myStream, setMyStream] = useState(null);
@@ -198,42 +216,34 @@ const VideoConsultationRoom = ({ role, session }) => {
 
   return (
     <div>
-      <h1>Video Room</h1>
+      
+      <VideoNavbar role={role} doctor={session.doctor} patient={session.patient} connected={!!remoteSocketId} />
+      <div className="video-consulation-container">
 
-      <h4>
-        {remoteSocketId
-          ? "Connected"
-          : `Waiting for ${role === "doctor" ? "patient" : "doctor"}`}
-      </h4>
+        {myStream && (
+          <div className="myvideo-wrapper">
+            <h2>{myName}</h2>
+            <video className="myvideo"
+              ref={myVideoRef}
+              autoPlay
+              muted
+              playsInline
+            />
+          </div>
+        )}
 
-      {myStream && (
-        <>
-          <h2>{role === "doctor" ? "Doctor View" : "Patient View"}</h2>
-
-          <video
-            ref={myVideoRef}
-            autoPlay
-            muted
-            playsInline
-            width="300"
-            height="200"
-          />
-        </>
-      )}
-
-      {remoteStream && (
-        <>
-          <h2>{role === "doctor" ? "Patient View" : "Doctor View"}</h2>
-
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            width="300"
-            height="200"
-          />
-        </>
-      )}
+        {remoteStream && (
+          <div className="remotevideo-wrapper">
+            <h2>{remoteName}</h2>
+            <video className="remotevideo"
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+            />
+          </div>
+        )}
+      </div>
+      <VideoFunctionality role={role}/>
     </div>
   );
 };

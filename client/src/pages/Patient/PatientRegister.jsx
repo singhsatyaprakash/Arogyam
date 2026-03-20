@@ -64,7 +64,7 @@ const PatientRegister = () => {
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                   <FaCheckCircle className="text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Welcome to DocConnect</h3>
+                <h3 className="text-xl font-bold text-gray-800">Welcome to Arogyam</h3>
               </div>
               <p className="text-gray-600">
                 Quick and secure access to trusted doctors. Create your patient account to book appointments, chat with your doctor, and manage health records.

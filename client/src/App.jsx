@@ -5,6 +5,8 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Help from "./pages/Help";
 import Careers from "./pages/Careers.jsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndCondition from "./pages/TermsAndCondition";
 
 import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
 import PatientRegister from "./pages/Patient/PatientRegister";
@@ -28,24 +30,14 @@ import Appointments from "./pages/Doctor/Appointments";
 import DoctorVideoCallLobby from "./pages/Doctor/DoctorVideoCallLobby";
 import VideoCallDoctorSide from "./doctorComponent/VideoCallDoctorSide";
 import VideoCallWithPatientHistory from "./pages/Doctor/VideoCallWithPatientHistory";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsAndCondition from "./pages/TermsAndCondition";
 
+import Medicines from "./pages/Doctor/Medicines";
+import Notes from "./pages/Doctor/Notes";
+import CaseStudies from "./pages/Doctor/CaseStudies";
+import ShareIdeas from "./pages/Doctor/ShareIdeas";
+import Settings from "./pages/Doctor/Settings";
 
-
-
-
-// import OnePatientChat from "./pages/Doctor/OnePatientChat";
-// import VideoSessionManagement from "./pages/Doctor/VideoSessionManagement";
-// import VideoCall from "./doctorComponent/VideoCall";
-// import Medicines from "./pages/Doctor/Medicines";
-// import Notes from "./pages/Doctor/Notes";
-// import CaseStudies from "./pages/Doctor/CaseStudies";
-// import ShareIdeas from "./pages/Doctor/ShareIdeas";
-// import PatientProtectedWrapper from "./ProtectWrapper/PatientProtectedWrapper";
-// import Settings from "./pages/Doctor/Settings";
 // import VerifyEmailPage from "./component/VerifyEmailPage";
-// import PatientVideoCall from "./pages/Patient/PatientVideoCall";
 
 const App = () => {
   return (
@@ -86,15 +78,13 @@ const App = () => {
         <Route path="/doctor/video-calls" element={<DoctorProtectedWrapper><VideoCallWithPatientHistory/></DoctorProtectedWrapper>} />
 
 
-        {/* <Route path="/verify-email" element={<VerifyEmailPage />} />
-
-        <Route path="/doctor/video-sessions" element={<DoctorProtectedWrapper><VideoSessionManagement /></DoctorProtectedWrapper>} />
+        
         <Route path="/doctor/medicines" element={<DoctorProtectedWrapper><Medicines /></DoctorProtectedWrapper>} />
         <Route path="/doctor/notes" element={<DoctorProtectedWrapper><Notes /></DoctorProtectedWrapper>} />
         <Route path="/doctor/case-studies" element={<DoctorProtectedWrapper><CaseStudies /></DoctorProtectedWrapper>} />
         <Route path="/doctor/share-ideas" element={<DoctorProtectedWrapper><ShareIdeas /></DoctorProtectedWrapper>} />
-        <Route path="/doctor/settings" element={<DoctorProtectedWrapper><Settings /></DoctorProtectedWrapper>} /> */}
-
+        <Route path="/doctor/settings" element={<DoctorProtectedWrapper><Settings /></DoctorProtectedWrapper>} />
+        {/* <Route path="/verify-email" element={<VerifyEmailPage />} /> */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
