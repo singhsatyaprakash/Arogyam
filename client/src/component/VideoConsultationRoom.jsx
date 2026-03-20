@@ -33,6 +33,20 @@ const VideoConsultationRoom = ({ role, session }) => {
   const remoteVideoRef = useRef(null);
   const localStreamRef = useRef(null);
 
+  const attachLocalTracks = useCallback((stream) => {
+    stream.getTracks().forEach((track) => {
+      const existingSender = peer.peer
+        .getSenders()
+        .find((sender) => sender?.track?.kind === track.kind);
+
+      if (existingSender) {
+        existingSender.replaceTrack(track);
+      } else {
+        peer.peer.addTrack(track, stream);
+      }
+    });
+  }, []);
+
   const handleCallUser = useCallback(async (targetSocketId) => {
     try {
       const targetId = targetSocketId || remoteSocketId;
@@ -46,10 +60,8 @@ const VideoConsultationRoom = ({ role, session }) => {
       setMyStream(stream);
       localStreamRef.current = stream;
 
-      // add tracks first
-      stream.getTracks().forEach((track) => {
-        peer.peer.addTrack(track, stream);
-      });
+      // Keep the same add-track -> create-offer sequence as the working room flow.
+      attachLocalTracks(stream);
 
       const offer = await peer.getOffer();
 
@@ -61,7 +73,7 @@ const VideoConsultationRoom = ({ role, session }) => {
     } catch (err) {
       console.error(err);
     }
-  }, [remoteSocketId, socket]);
+  }, [remoteSocketId, socket, attachLocalTracks]);
 
   const handleUserJoined = useCallback(({ socketId }) => {
     console.log("User joined:", socketId);
@@ -87,9 +99,7 @@ const VideoConsultationRoom = ({ role, session }) => {
       setMyStream(stream);
       localStreamRef.current = stream;
 
-      stream.getTracks().forEach((track) => {
-        peer.peer.addTrack(track, stream);
-      });
+      attachLocalTracks(stream);
 
       const ans = await peer.getAnswer(offer);
 
@@ -98,7 +108,7 @@ const VideoConsultationRoom = ({ role, session }) => {
         ans,
       });
     },
-    [socket]
+    [socket, attachLocalTracks]
   );
 
   const handleCallAccepted = useCallback(({ ans }) => {
@@ -108,6 +118,7 @@ const VideoConsultationRoom = ({ role, session }) => {
   // negotiation
   const handleNegoNeeded = useCallback(async () => {
     if (!remoteSocketId) return;
+    if (peer.peer.signalingState !== "stable") return;
 
     const offer = await peer.getOffer();
 
@@ -128,7 +139,7 @@ const VideoConsultationRoom = ({ role, session }) => {
 
   const handleICECandidate = useCallback(({ candidate }) => {
     if (!candidate) return;
-    peer.peer.addIceCandidate(candidate).catch((err) => {
+    peer.addIceCandidateSafely(candidate).catch((err) => {
       console.error("Error adding remote ICE candidate", err);
     });
   }, []);
@@ -205,6 +216,12 @@ const handleCallEnded = useCallback(() => {
   console.log("Navigating to:", navigationPath);
   navigate(navigationPath);
 }, [remoteStream, navigate, role]);
+
+const handleCallEndedEvent = useCallback(() => {
+  console.log("call:ended event received");
+  handleCallEnded();
+}, [handleCallEnded]);
+
     // socket listeners
 useEffect(() => {
   socket.on("user:joined", handleUserJoined);
@@ -213,10 +230,7 @@ useEffect(() => {
   socket.on("peer:nego:needed", handleNegoIncoming);
   socket.on("peer:nego:final", handleNegoFinal);
   socket.on("peer:ice:candidate", handleICECandidate);
-  socket.on("call:ended", () => {
-    console.log("call:ended event received");
-    handleCallEnded();
-  });
+  socket.on("call:ended", handleCallEndedEvent);
 
   return () => {
     socket.off("user:joined", handleUserJoined);
@@ -225,7 +239,7 @@ useEffect(() => {
     socket.off("peer:nego:needed", handleNegoIncoming);
     socket.off("peer:nego:final", handleNegoFinal);
     socket.off("peer:ice:candidate", handleICECandidate);
-    socket.off("call:ended", handleCallEnded);
+    socket.off("call:ended", handleCallEndedEvent);
   };
 }, [
   socket,
@@ -235,7 +249,7 @@ useEffect(() => {
   handleNegoIncoming,
   handleNegoFinal,
   handleICECandidate,
-  handleCallEnded,
+  handleCallEndedEvent,
 ]);
 
   useEffect(() => {
