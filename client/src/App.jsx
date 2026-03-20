@@ -30,6 +30,7 @@ import Appointments from "./pages/Doctor/Appointments";
 import DoctorVideoCallLobby from "./pages/Doctor/DoctorVideoCallLobby";
 import VideoCallDoctorSide from "./doctorComponent/VideoCallDoctorSide";
 import VideoCallWithPatientHistory from "./pages/Doctor/VideoCallWithPatientHistory";
+import PatientReviews from "./pages/Patient/PatientReviews.jsx";
 
 import Medicines from "./pages/Doctor/Medicines";
 import Notes from "./pages/Doctor/Notes";
@@ -62,6 +63,7 @@ const App = () => {
         <Route path="/patient/video-call-lobby/:appointmentId" element={<PatientProtectedWrapper><PatientVideoCallLobby /></PatientProtectedWrapper>} />
         <Route path="/patient/video-call/:sessionId" element={<PatientProtectedWrapper><VideoCallPateintSide /></PatientProtectedWrapper>} />
         <Route path="/patient/video-calls" element={<PatientProtectedWrapper><VideoCallWithDoctorHistory/></PatientProtectedWrapper>} />
+        <Route path="/patient/reviews" element={<PatientProtectedWrapper><PatientReviews/></PatientProtectedWrapper>} />
 
 
 

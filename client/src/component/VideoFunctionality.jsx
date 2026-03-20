@@ -6,7 +6,7 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 
-export const VideoFunctionality = ({ role }) => {
+export const VideoFunctionality = ({ role, onEndCall }) => {
   const [showControls, setShowControls] = useState(true);
   const hideTimerRef = useRef(null);
 
@@ -34,10 +34,7 @@ export const VideoFunctionality = ({ role }) => {
       }
     };
   }, []);
-  const endCall = () => {
-    // Logic to end the call, e.g., close connections, navigate away, etc.
-    console.log("Call ended");
-  };
+
   return (
     <footer
       className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${
@@ -48,13 +45,12 @@ export const VideoFunctionality = ({ role }) => {
         <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
           <MoreHorizIcon fontSize="medium" />
         </button>
-        {
-          role==="doctor" && (
-            <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
-              <MedicalInformationIcon fontSize="medium" />
-            </button>
-          )
-        }
+
+        {role === "doctor" && (
+          <button className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+            <MedicalInformationIcon fontSize="medium" />
+          </button>
+        )}
 
         <button className="w-12 h-12 rounded-full bg-white text-black hover:scale-105 flex items-center justify-center transition">
           <VideocamIcon fontSize="medium" />
@@ -68,7 +64,10 @@ export const VideoFunctionality = ({ role }) => {
           <MicOffIcon fontSize="medium" />
         </button>
 
-        <button onClick={()=>{endCall()}} className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition">
+        <button
+          onClick={onEndCall}
+          className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition"
+        >
           <CallEndIcon fontSize="medium" />
         </button>
       </div>

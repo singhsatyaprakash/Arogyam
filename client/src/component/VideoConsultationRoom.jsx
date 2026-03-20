@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import peer from "../services/peer";
 import "./VideoConsultationRoom.css";
@@ -7,7 +8,7 @@ import { VideoFunctionality } from "./VideoFunctionality";
 const VideoConsultationRoom = ({ role, session }) => {
   console.log(session);
   const socket = useSocket();
-
+  const navigate = useNavigate();
   const getParticipantName = (participant, fallback) => {
     if (!participant) return fallback;
     return (
@@ -131,25 +132,111 @@ const VideoConsultationRoom = ({ role, session }) => {
       console.error("Error adding remote ICE candidate", err);
     });
   }, []);
+
+  const handleEndCall = useCallback(() => {
+  // tell other user call ended
+  if (remoteSocketId) {
+    socket.emit("call:end", { to: remoteSocketId });
+  }
+
+  // stop local stream
+  if (localStreamRef.current) {
+    localStreamRef.current.getTracks().forEach((track) => track.stop());
+    localStreamRef.current = null;
+  }
+
+  // stop remote stream also
+  if (remoteStream) {
+    remoteStream.getTracks().forEach((track) => track.stop());
+  }
+
+  // clear video tags
+  if (myVideoRef.current) myVideoRef.current.srcObject = null;
+  if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+  // reset states
+  setMyStream(null);
+  setRemoteStream(null);
+  setRemoteSocketId(null);
+
+  // close peer connection
+  peer.peer.getSenders().forEach((sender) => {
+    try {
+      peer.peer.removeTrack(sender);
+    } catch (err) {
+      console.error("Error removing sender", err);
+    }
+  });
+
+  peer.peer.close();
+
+  // recreate peer connection if your peer service supports it
+  peer.createPeer();
+
+  // navigate to video calls page
+  const navigationPath = `/${role}/video-calls`;
+  console.log("Navigating to:", navigationPath);
+  navigate(navigationPath);
+}, [remoteSocketId, socket, remoteStream, role, navigate]);
+
+const handleCallEnded = useCallback(() => {
+  console.log("handleCallEnded triggered with role:", role);
+  
+  if (localStreamRef.current) {
+    localStreamRef.current.getTracks().forEach((track) => track.stop());
+    localStreamRef.current = null;
+  }
+
+  if (remoteStream) {
+    remoteStream.getTracks().forEach((track) => track.stop());
+  }
+
+  if (myVideoRef.current) myVideoRef.current.srcObject = null;
+  if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+  setMyStream(null);
+  setRemoteStream(null);
+  setRemoteSocketId(null);
+
+  peer.peer.close();
+  peer.createPeer();
+  
+  const navigationPath = `/${role}/video-calls`;
+  console.log("Navigating to:", navigationPath);
+  navigate(navigationPath);
+}, [remoteStream, navigate, role]);
     // socket listeners
-  useEffect(() => {
-    socket.on("user:joined", handleUserJoined);
-    socket.on("incoming:call", handleIncomingCall);
-    socket.on("call:accepted", handleCallAccepted);
-    socket.on("peer:nego:needed",handleNegoIncoming);
-    socket.on("peer:nego:final",handleNegoFinal);
-    socket.on("peer:ice:candidate", handleICECandidate);
+useEffect(() => {
+  socket.on("user:joined", handleUserJoined);
+  socket.on("incoming:call", handleIncomingCall);
+  socket.on("call:accepted", handleCallAccepted);
+  socket.on("peer:nego:needed", handleNegoIncoming);
+  socket.on("peer:nego:final", handleNegoFinal);
+  socket.on("peer:ice:candidate", handleICECandidate);
+  socket.on("call:ended", () => {
+    console.log("call:ended event received");
+    handleCallEnded();
+  });
 
-    return () => {
-      socket.off("user:joined", handleUserJoined);
-      socket.off("incoming:call", handleIncomingCall);
-      socket.off("call:accepted", handleCallAccepted);
-      socket.off("peer:nego:needed", handleNegoIncoming);
-      socket.off("peer:nego:final",handleNegoFinal);
-      socket.off("peer:ice:candidate", handleICECandidate);
-    };
-  }, [socket, handleUserJoined, handleIncomingCall, handleCallAccepted,handleNegoIncoming,handleNegoFinal, handleICECandidate]);
-
+  return () => {
+    socket.off("user:joined", handleUserJoined);
+    socket.off("incoming:call", handleIncomingCall);
+    socket.off("call:accepted", handleCallAccepted);
+    socket.off("peer:nego:needed", handleNegoIncoming);
+    socket.off("peer:nego:final", handleNegoFinal);
+    socket.off("peer:ice:candidate", handleICECandidate);
+    socket.off("call:ended", handleCallEnded);
+  };
+}, [
+  socket,
+  handleUserJoined,
+  handleIncomingCall,
+  handleCallAccepted,
+  handleNegoIncoming,
+  handleNegoFinal,
+  handleICECandidate,
+  handleCallEnded,
+]);
 
   useEffect(() => {
     peer.peer.addEventListener("negotiationneeded", handleNegoNeeded);
@@ -243,7 +330,7 @@ const VideoConsultationRoom = ({ role, session }) => {
           </div>
         )}
       </div>
-      <VideoFunctionality role={role}/>
+      <VideoFunctionality role={role} onEndCall={handleEndCall} />
     </div>
   );
 };

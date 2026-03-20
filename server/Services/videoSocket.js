@@ -54,6 +54,10 @@ const attachVideoSocketHandlers = (io, socket) => {
     io.to(to).emit("peer:ice:candidate", { from: socket.id, candidate });
   });
 
+  socket.on("call:end", ({ to }) => {
+  if (!to) return;
+    io.to(to).emit("call:ended", { from: socket.id });
+  });
 
   socket.on("disconnect", () => {
     const sessionId = socketIdToSessionIdMap.get(socket.id);
@@ -65,103 +69,80 @@ const attachVideoSocketHandlers = (io, socket) => {
 module.exports = { attachVideoSocketHandlers };
 
 
-// const activeVideoRooms = new Map();
+//check this improveed version///
+/* 
+const sessionIdToSocketIdMap = new Map();
+const socketIdToSessionIdMap = new Map();
+const socketIdToRoomIdMap = new Map();
 
-// const toPublicParticipant = (participant) => ({
-//   sessionId: participant.sessionId,
-//   appointmentId: participant.appointmentId,
-//   participantId: participant.participantId,
-//   participantType: participant.participantType,
-//   joinedAt: participant.joinedAt,
-// });
+const attachVideoSocketHandlers = (io, socket) => {
+  socket.on("room:join", (data) => {
+    const { sessionId, roomId } = data;
 
-// const getRoomParticipants = (roomId) => {
-//   const room = activeVideoRooms.get(roomId);
-//   if (!room) return [];
-//   return Array.from(room.values()).map(toPublicParticipant);
-// };
+    sessionIdToSocketIdMap.set(sessionId, socket.id);
+    socketIdToSessionIdMap.set(socket.id, sessionId);
+    socketIdToRoomIdMap.set(socket.id, roomId);
 
-// const removeParticipantFromRoom = (socket, roomId) => {
-//   const room = activeVideoRooms.get(roomId);
-//   if (!room) return;
+    socket.join(roomId);
 
-//   const participant = room.get(socket.id);
-//   if (!participant) return;
+    socket.to(roomId).emit("user:joined", { sessionId, socketId: socket.id });
 
-//   room.delete(socket.id);
-//   socket.leave(roomId);
-//   socket.to(roomId).emit("video_participant_left", {
-//     roomId,
-//     participant: toPublicParticipant(participant),
-//   });
+    const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
+    const existingUsers = [];
 
-//   if (room.size === 0) {
-//     activeVideoRooms.delete(roomId);
-//   }
-// };
-// /**********************************************/
-// const attachVideoSocketHandlers = (io, socket) => {
-//   // Video call signaling section
-//   socket.on("join_video_room", (payload = {}) => {
-//     const { roomId, sessionId, appointmentId, participantId, participantType } = payload;
+    if (socketsInRoom) {
+      for (const sid of socketsInRoom) {
+        if (sid !== socket.id) {
+          existingUsers.push({
+            socketId: sid,
+            sessionId: socketIdToSessionIdMap.get(sid),
+          });
+        }
+      }
+    }
 
-//     if (!roomId || !participantId || !participantType) {
-//       socket.emit("video_call_error", { message: "Invalid room join payload" });
-//       return;
-//     }
-    
-//     if (!activeVideoRooms.has(roomId)) {
-//       activeVideoRooms.set(roomId, new Map());
-//     }
+    io.to(socket.id).emit("room:joined", { data, existingUsers });
+  });
 
-//     const room = activeVideoRooms.get(roomId);
-//     const participant = {
-//       sessionId,
-//       appointmentId,
-//       participantId,
-//       participantType,
-//       joinedAt: new Date().toISOString(),
-//     };
+  socket.on("user:call", ({ to, offer }) => {
+    io.to(to).emit("incoming:call", { from: socket.id, offer });
+  });
 
-//     room.set(socket.id, participant);
-//     socket.join(roomId);
+  socket.on("call:answer", ({ to, ans }) => {
+    io.to(to).emit("call:accepted", { from: socket.id, ans });
+  });
 
-//     socket.emit("video_room_state", {
-//       roomId,
-//       participants: getRoomParticipants(roomId),
-//     });
+  socket.on("peer:nego:needed", ({ to, offer }) => {
+    io.to(to).emit("peer:nego:needed", { from: socket.id, offer });
+  });
 
-//     socket.to(roomId).emit("video_participant_joined", {
-//       roomId,
-//       participant: toPublicParticipant(participant),
-//     });
-//   });
+  socket.on("peer:nego:done", ({ to, ans }) => {
+    io.to(to).emit("peer:nego:final", { from: socket.id, ans });
+  });
 
-//   socket.on("video_offer", ({ roomId, offer, sessionId } = {}) => {
-//     if (!roomId || !offer) return;
-//     socket.to(roomId).emit("video_offer", { roomId, offer, sessionId });
-//   });
+  socket.on("peer:ice:candidate", ({ to, candidate }) => {
+    if (!to || !candidate) return;
+    io.to(to).emit("peer:ice:candidate", { from: socket.id, candidate });
+  });
 
-//   socket.on("video_answer", ({ roomId, answer, sessionId } = {}) => {
-//     if (!roomId || !answer) return;
-//     socket.to(roomId).emit("video_answer", { roomId, answer, sessionId });
-//   });
+  socket.on("call:end", ({ to }) => {
+    if (!to) return;
+    io.to(to).emit("call:ended", { from: socket.id });
+  });
 
-//   socket.on("video_ice_candidate", ({ roomId, candidate, sessionId } = {}) => {
-//     if (!roomId || !candidate) return;
-//     socket.to(roomId).emit("video_ice_candidate", { roomId, candidate, sessionId });
-//   });
+  socket.on("disconnect", () => {
+    const sessionId = socketIdToSessionIdMap.get(socket.id);
+    const roomId = socketIdToRoomIdMap.get(socket.id);
 
-//   socket.on("leave_video_room", ({ roomId } = {}) => {
-//     if (!roomId) return;
-//     removeParticipantFromRoom(socket, roomId);
-//   });
+    if (roomId) {
+      socket.to(roomId).emit("call:ended", { from: socket.id });
+    }
 
-//   socket.on("disconnect", () => {
-//     for (const roomId of activeVideoRooms.keys()) {
-//       removeParticipantFromRoom(socket, roomId);
-//     }
-//   });
-// };
+    if (sessionId) sessionIdToSocketIdMap.delete(sessionId);
+    socketIdToSessionIdMap.delete(socket.id);
+    socketIdToRoomIdMap.delete(socket.id);
+  });
+};
 
-// module.exports = { attachVideoSocketHandlers };
+module.exports = { attachVideoSocketHandlers };
+*/
