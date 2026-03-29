@@ -143,65 +143,80 @@ const PatientVideoCallLobby = () => {
     : "NA";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-white to-cyan-50/40">
       <PatientNavbar />
 
-      <main className="pt-16 lg:pt-6 lg:ml-64 p-6">
+      <main className="relative pt-16 lg:pt-6 lg:ml-64 px-4 sm:px-6 py-6">
         <button
           onClick={() => navigate(-1)}
-          className="mb-6 flex items-center gap-2 text-gray-600 hover:text-green-700"
+          className="absolute left-4 sm:left-6 top-6 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <FaArrowLeft /> Back
         </button>
 
-        <div className="max-w-3xl rounded-xl border border-gray-200 bg-white p-8 shadow-lg">
-          <h1 className="text-2xl font-bold text-gray-900">Patient Video Call Lobby</h1>
+        <div className="mx-auto max-w-4xl pt-14">
 
-          {loading && (
-            <p className="mt-4 text-sm text-gray-600">Preparing your video session...</p>
-          )}
-
-          {!loading && err && (
-            <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {err}
+          <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
+            <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-cyan-50 p-5 sm:p-6">
+              <h1 className="text-2xl font-bold text-gray-900">Video Call Lobby</h1>
+              <p className="mt-1 text-sm text-gray-600">Review your session details and join when ready.</p>
             </div>
-          )}
 
-          {!loading && !err && (
-            <>
-              <div className="mt-6 flex items-center gap-4 border-b pb-5">
-                {doctor?.profileImage ? (
-                  <img
-                    src={doctor.profileImage}
-                    alt="doctor"
-                    className="h-16 w-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <FaUserCircle className="text-6xl text-gray-400" />
-                )}
+            <div className="p-5 sm:p-6">
 
-                <div>
-                  <p className="text-lg font-semibold text-gray-900">{doctor?.name || "Doctor"}</p>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-                    <FaStethoscope /> {doctor?.specialization || "Specialization not available"}
-                  </p>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-                    <FaClock /> {formattedDate} | {appointment?.startTime} - {appointment?.endTime}
-                  </p>
+              {loading && (
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                  <p className="text-sm text-emerald-800">Preparing your video session...</p>
                 </div>
-              </div>
+              )}
 
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={startCall}
-                  disabled={!session?.roomId || isJoining}
-                  className="inline-flex items-center gap-2 rounded-md bg-green-600 px-5 py-2.5 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <FaVideo /> {isJoining ? "Joining..." : "Join Video Call"}
-                </button>
-              </div>
-            </>
-          )}
+              {!loading && err && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {err}
+                </div>
+              )}
+
+              {!loading && !err && (
+                <>
+                  <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      {doctor?.profileImage ? (
+                        <img
+                          src={doctor.profileImage}
+                          alt="doctor"
+                          className="h-16 w-16 rounded-full object-cover border border-emerald-200"
+                        />
+                      ) : (
+                        <FaUserCircle className="text-6xl text-gray-400" />
+                      )}
+
+                      <div>
+                        <p className="text-lg font-semibold text-gray-900">{doctor?.name || "Doctor"}</p>
+                        <p className="mt-1 inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                          <FaStethoscope /> {doctor?.specialization || "Specialization not available"}
+                        </p>
+                        <p className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                          <FaClock /> {formattedDate} | {appointment?.startTime} - {appointment?.endTime}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={startCall}
+                      disabled={!session?.roomId || isJoining}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-white font-medium hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FaVideo /> {isJoining ? "Joining..." : "Join Video Call"}
+                    </button>
+
+                    <p className="text-xs text-gray-500">Make sure your camera and microphone are ready.</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </main>
     </div>

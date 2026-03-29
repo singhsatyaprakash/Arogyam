@@ -3,6 +3,23 @@ import axios from "axios";
 
 const API_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 
+const formatDateDdMmmYy = (dateLike) => {
+  if (!dateLike) return "NA";
+
+  const parsed =
+    typeof dateLike === "string"
+      ? new Date(`${dateLike}T00:00:00`)
+      : new Date(dateLike);
+
+  if (Number.isNaN(parsed.getTime())) return "NA";
+
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const month = parsed.toLocaleString("en-US", { month: "short" });
+  const year = String(parsed.getFullYear()).slice(-2);
+
+  return `${day} ${month} ${year}`;
+};
+
 const AppointmentReschedule = ({
   open,
   appointment,
@@ -65,36 +82,36 @@ const AppointmentReschedule = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
 
       {/* MODAL */}
-      <div className="w-full max-w-xl rounded-lg bg-white p-4 shadow-xl">
+      <div className="w-full max-w-2xl rounded-2xl sm:rounded-3xl border border-red-100 bg-gradient-to-br from-white to-red-50/30 p-4 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
 
         {/* Header */}
-        <h2 className="text-lg font-semibold text-gray-800">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">
           Reschedule Appointment
         </h2>
 
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="text-sm text-gray-600 mb-4">
           Select a new date and choose an available time slot
         </p>
 
         {/* Current info */}
-        <div className="rounded-md bg-gray-50 p-2 text-xs text-gray-700 mb-3">
-          <p>
-            <span className="font-medium">Current date:</span>{" "}
-            {appointment?.date || "NA"}
-          </p>
-          <p>
-            <span className="font-medium">Current time:</span>{" "}
-            {appointment?.startTime || "NA"}
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+          <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+            <p className="text-xs text-gray-500 mb-1">Current date</p>
+            <p className="font-semibold text-gray-900">{formatDateDdMmmYy(appointment?.date)}</p>
+          </div>
+          <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+            <p className="text-xs text-gray-500 mb-1">Current time</p>
+            <p className="font-semibold text-gray-900">{appointment?.startTime || "NA"}</p>
+          </div>
         </div>
 
         {/* Inputs */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
-            <label className="text-xs text-gray-600">New date</label>
+            <label className="text-xs font-medium text-gray-600">New date</label>
             <input
               type="date"
               value={date}
@@ -103,18 +120,23 @@ const AppointmentReschedule = ({
                 setDate(e.target.value);
                 setTime("");
               }}
-              className="mt-1 w-full rounded-md border border-gray-300 p-2 text-sm focus:border-green-500 outline-none"
+              className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none transition"
             />
+            <p className="mt-1 text-xs text-gray-500">{formatDateDdMmmYy(date)}</p>
           </div>
 
           <div>
-            <label className="text-xs text-gray-600">Selected time</label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 p-2 text-sm focus:border-green-500 outline-none"
-            />
+            <label className="text-xs font-medium text-gray-600">Selected time</label>
+            <div
+              className={`mt-1 w-full rounded-xl border px-3 py-2.5 text-sm transition ${
+                time
+                  ? "border-green-300 bg-green-50 text-green-800 font-semibold"
+                  : "border-gray-300 bg-gray-50 text-gray-400"
+              }`}
+              aria-live="polite"
+            >
+              {time || "Select a slot below"}
+            </div>
           </div>
         </div>
 
@@ -123,24 +145,24 @@ const AppointmentReschedule = ({
           Available slots
         </p>
 
-        <div className="max-h-60 overflow-y-auto pr-1">
+        <div className="max-h-64 overflow-y-auto pr-1 rounded-xl">
 
           {slotsLoading && (
-            <p className="text-xs text-gray-500">Loading slots...</p>
+            <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Loading slots...</p>
           )}
 
           {slotsErr && (
-            <p className="text-xs text-red-500">{slotsErr}</p>
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{slotsErr}</p>
           )}
 
           {!slotsLoading && !slotsErr && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
 
               {slots.map((slot) => (
                 <button
                   key={slot.time}
                   onClick={() => setTime(slot.time)}
-                  className={`rounded-md border px-2 py-2 text-left transition
+                  className={`rounded-xl border px-3 py-2.5 text-left transition shadow-sm
                     ${
                       time === slot.time
                         ? "bg-green-600 text-white border-green-600"
@@ -159,7 +181,7 @@ const AppointmentReschedule = ({
               ))}
 
               {slots.length === 0 && (
-                <div className="col-span-full text-xs text-gray-500 border p-2 rounded">
+                <div className="col-span-full text-xs text-gray-500 border border-dashed border-gray-300 bg-gray-50 p-3 rounded-xl text-center">
                   No slots available
                 </div>
               )}
@@ -168,10 +190,10 @@ const AppointmentReschedule = ({
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5 pt-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-50"
+            className="px-4 py-2.5 text-sm border border-gray-300 rounded-xl hover:bg-gray-50 transition"
           >
             Close
           </button>
@@ -179,7 +201,7 @@ const AppointmentReschedule = ({
           <button
             disabled={!canSubmit}
             onClick={() => onSubmit?.({ date, time })}
-            className="px-4 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            className="px-5 py-2.5 text-sm rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 disabled:opacity-50 transition"
           >
             {loading ? "Saving..." : "Confirm"}
           </button>

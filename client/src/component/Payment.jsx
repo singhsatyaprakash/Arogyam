@@ -64,7 +64,7 @@ const Payment = () => {
         setStatus('success');
 
         // simple redirect after success
-        setTimeout(() => navigate('/patient/dashboard'), 800);
+        setTimeout(() => navigate('/patient/booked-appointment'), 800);
       } catch (e) {
         if (cancelled) return;
         setStatus('error');
@@ -77,12 +77,12 @@ const Payment = () => {
 
   if (!canStart) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 max-w-md w-full">
-          <h2 className="text-lg font-semibold text-gray-800">Payment</h2>
-          <p className="text-sm text-red-600 mt-2">Missing booking details. Go back and select a slot again.</p>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50 flex items-center justify-center p-6">
+        <div className="bg-white/95 border border-rose-100 rounded-2xl shadow-md p-7 max-w-md w-full">
+          <h2 className="text-xl font-bold text-gray-900">Payment</h2>
+          <p className="text-sm text-rose-700 mt-2">Missing booking details. Go back and select a slot again.</p>
           <button
-            className="mt-4 px-4 py-2 rounded-md bg-gray-800 text-white text-sm"
+            className="mt-5 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm hover:bg-gray-800 transition"
             onClick={() => navigate(-1)}
           >
             Go back
@@ -93,41 +93,74 @@ const Payment = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-xl shadow-sm p-6 max-w-md w-full">
-        <h2 className="text-lg font-semibold text-gray-800">Payment</h2>
-
-        <div className="mt-3 text-sm text-gray-700 space-y-1">
-          <div><span className="text-gray-500">Doctor:</span> {payload.doctorName || payload.doctorId}</div>
-          <div><span className="text-gray-500">Date:</span> {payload.date}</div>
-          <div><span className="text-gray-500">Time:</span> {payload.time}</div>
-          <div><span className="text-gray-500">Mode:</span> {payload.type}</div>
-          <div><span className="text-gray-500">Fee:</span> ₹{Number(payload.fee || 0)}</div>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-lg rounded-3xl border border-emerald-100 bg-white/95 shadow-lg backdrop-blur overflow-hidden">
+        <div className="px-6 sm:px-7 pt-7 pb-5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+          <h2 className="text-2xl font-bold tracking-tight">Payment Checkout</h2>
+          <p className="text-sm text-emerald-50 mt-1">Securely confirming your appointment booking</p>
         </div>
 
+        <div className="p-6 sm:p-7 space-y-5">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5 text-sm text-gray-700 space-y-2">
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-500">Doctor</span>
+              <span className="font-medium text-gray-900 text-right">{payload.doctorName || payload.doctorId}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-500">Date</span>
+              <span className="font-medium text-gray-900 text-right">{payload.date}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-500">Time</span>
+              <span className="font-medium text-gray-900 text-right">{payload.time}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-500">Consultation Type</span>
+              <span className="font-medium text-gray-900 text-right capitalize">{payload.type}</span>
+            </div>
+            <div className="my-2 border-t border-dashed border-gray-300" />
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-600 font-medium">Amount</span>
+              <span className="text-lg font-bold text-emerald-700">₹{Number(payload.fee || 0)}</span>
+            </div>
+          </div>
+
         {status === 'processing' && (
-          <p className="mt-4 text-sm text-gray-600">
-            Processing payment... please wait {seconds}s
-          </p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm text-emerald-900 font-medium">Processing payment... please wait {seconds}s</p>
+            <div className="mt-3 h-2 w-full rounded-full bg-emerald-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-1000"
+                style={{ width: `${Math.max(0, ((10 - seconds) / 10) * 100)}%` }}
+              />
+            </div>
+          </div>
         )}
 
         {status === 'success' && (
-          <p className="mt-4 text-sm text-green-700">
-            Payment successful. Booking confirmed.
-          </p>
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+            <p className="text-sm text-green-800 font-medium">Payment successful. Booking confirmed.</p>
+          </div>
         )}
 
         {status === 'error' && (
-          <>
-            <p className="mt-4 text-sm text-red-600">{error}</p>
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+            <p className="text-sm text-rose-700 font-medium">{error}</p>
             <button
-              className="mt-4 px-4 py-2 rounded-md bg-gray-800 text-white text-sm"
+              className="mt-4 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm hover:bg-gray-800 transition"
               onClick={() => navigate(-1)}
             >
               Go back
             </button>
-          </>
+          </div>
         )}
+
+          {status === 'processing' && (
+            <p className="text-xs text-gray-500 text-center">
+              Please do not refresh or close this page while payment is being confirmed.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )

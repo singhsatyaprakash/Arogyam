@@ -53,4 +53,17 @@ router.post(
   videoController.leavePatientSession
 );
 
+// History routes
+router.get(
+  "/history/doctor",
+  doctorMiddleware.authenticateDoctor,
+  videoController.getDoctorCallHistory
+);
+
+router.get(
+  "/history/patient",
+  patientMiddleware.authenticatePatient,
+  videoController.getPatientCallHistory
+);
+
 module.exports = router;

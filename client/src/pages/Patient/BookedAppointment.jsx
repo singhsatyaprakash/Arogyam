@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useContext } from "react";
 import axios from "axios";
-import { FaCalendarAlt, FaSearch, FaTimes } from "react-icons/fa";
+import { FaCalendarAlt, FaSearch, FaTimes, FaSyncAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { PatientContext } from "../../contexts/PatientContext";
 import AppointmentCard from "../../patientComponent/AppointmentCard";
@@ -12,6 +12,16 @@ import PatientNavbar from "../../patientComponent/PatientNavbar";
 const getAppointmentTime = (a) => {
   if (!a?.date || !a?.startTime) return 0;
   return new Date(`${a.date}T${a.startTime}`).getTime();
+};
+
+const getTodayBounds = () => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setHours(23, 59, 59, 999);
+
+  return { start: start.getTime(), end: end.getTime() };
 };
 
 const formatDate = (dateStr) => {
@@ -35,7 +45,7 @@ const BookedAppointment = () => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState("upcoming");
+  const [filter, setFilter] = useState("today");
   const [query, setQuery] = useState("");
 
   const authHeaders = useMemo(() => {
@@ -60,11 +70,7 @@ const BookedAppointment = () => {
 
       const list = Array.isArray(res?.data?.data) ? res.data.data : [];
 
-      const sorted = [...list].sort(
-        (a, b) => getAppointmentTime(b) - getAppointmentTime(a)
-      );
-
-      setAppointments(sorted);
+      setAppointments(list);
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load appointments");
     } finally {
@@ -77,6 +83,7 @@ const BookedAppointment = () => {
       if(appointment?.type == "video") {
       navigate(`/patient/video-call-lobby/${appointment._id}`, {
         state: { appointment },
+        replace: true,
       });
       return;
       }
@@ -124,7 +131,7 @@ const BookedAppointment = () => {
       //   );
       // }
     },
-    [navigate, authHeaders]
+    [navigate]
   );
 
   useEffect(() => {
@@ -134,22 +141,35 @@ const BookedAppointment = () => {
   /* ---------------- FILTER ---------------- */
 
   const filtered = useMemo(() => {
-    const now = Date.now();
+    const { start, end } = getTodayBounds();
 
-    return appointments.filter((a) => {
+    const base = appointments.filter((a) => {
       const time = getAppointmentTime(a);
       const status = (a?.status || "").toLowerCase();
 
       if (filter === "cancelled") return status === "cancelled";
 
+      if (filter === "today")
+        return status === "booked" && time >= start && time <= end;
+
       if (filter === "upcoming")
-        return status === "booked" && time >= now;
+        return status === "booked" && time > end;
 
       if (filter === "past")
-        return status !== "cancelled" && time < now;
+        return status !== "cancelled" && time < start;
 
       return true;
     });
+
+    if (filter === "today" || filter === "upcoming") {
+      return [...base].sort((a, b) => getAppointmentTime(a) - getAppointmentTime(b));
+    }
+
+    if (filter === "past") {
+      return [...base].sort((a, b) => getAppointmentTime(b) - getAppointmentTime(a));
+    }
+
+    return base;
   }, [appointments, filter]);
 
   /* ---------------- SEARCH ---------------- */
@@ -176,19 +196,26 @@ const BookedAppointment = () => {
   /* ---------------- COUNTS ---------------- */
 
   const counts = useMemo(() => {
-    const now = Date.now();
+    const { start, end } = getTodayBounds();
 
     return {
+      today: appointments.filter(
+        (a) =>
+          a.status === "booked" &&
+          getAppointmentTime(a) >= start &&
+          getAppointmentTime(a) <= end
+      ).length,
+
       upcoming: appointments.filter(
         (a) =>
           a.status === "booked" &&
-          getAppointmentTime(a) >= now
+          getAppointmentTime(a) > end
       ).length,
 
       past: appointments.filter(
         (a) =>
           a.status !== "cancelled" &&
-          getAppointmentTime(a) < now
+          getAppointmentTime(a) < start
       ).length,
 
       cancelled: appointments.filter(
@@ -200,6 +227,7 @@ const BookedAppointment = () => {
   }, [appointments]);
 
   const tabs = [
+    { key: "today", label: "Today", count: counts.today },
     { key: "upcoming", label: "Upcoming", count: counts.upcoming },
     { key: "past", label: "Past", count: counts.past },
     { key: "cancelled", label: "Cancelled", count: counts.cancelled },
@@ -209,25 +237,33 @@ const BookedAppointment = () => {
   /* ---------------- UI ---------------- */
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-teal-50">
       <PatientNavbar />
 
       <main className="pt-16 lg:pt-6 lg:ml-64 px-6 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-7xl py-8 space-y-6">
 
           {/* Header */}
-          <div className="flex justify-between items-center">
-            <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900">
-              <FaCalendarAlt className="text-green-600" />
-              My Appointments
-            </h1>
+          <div className="rounded-2xl border border-emerald-100 bg-white/90 shadow-sm backdrop-blur p-6 md:p-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="flex items-center gap-3 text-3xl font-bold text-gray-900">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <FaCalendarAlt />
+                </span>
+                My Appointments
+              </h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Track upcoming visits, revisit past consultations, and join sessions on time.
+              </p>
+            </div>
 
             {!selected && (
               <button
                 onClick={fetchAppointments}
                 disabled={loading}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                className="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 disabled:opacity-60"
               >
+                <FaSyncAlt className={loading ? "animate-spin" : ""} />
                 {loading ? "Refreshing..." : "Refresh"}
               </button>
             )}
@@ -240,14 +276,14 @@ const BookedAppointment = () => {
                 <button
                   key={t.key}
                   onClick={() => setFilter(t.key)}
-                  className={`bg-white border rounded-lg p-4 text-left transition hover:shadow ${
+                  className={`rounded-xl p-4 text-left transition border bg-white/95 shadow-sm hover:shadow-md ${
                     filter === t.key
-                      ? "border-green-600 ring-1 ring-green-600"
+                      ? "border-emerald-600 ring-2 ring-emerald-200"
                       : "border-gray-200"
                   }`}
                 >
-                  <div className="text-sm text-gray-500">{t.label}</div>
-                  <div className="text-2xl font-bold">{t.count}</div>
+                  <div className="text-sm text-gray-500 uppercase tracking-wide">{t.label}</div>
+                  <div className="mt-1 text-2xl font-bold text-gray-900">{t.count}</div>
                 </button>
               ))}
             </div>
@@ -255,7 +291,7 @@ const BookedAppointment = () => {
 
           {/* Tabs + Search */}
           {!selected && (
-            <div className="flex flex-wrap justify-between gap-4">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm flex flex-wrap justify-between gap-4">
 
               {/* Tabs */}
               <div className="flex gap-2 flex-wrap">
@@ -266,14 +302,14 @@ const BookedAppointment = () => {
                     <button
                       key={t.key}
                       onClick={() => setFilter(t.key)}
-                      className={`px-4 py-2 rounded-full border text-sm ${
+                      className={`px-4 py-2 rounded-full border text-sm font-medium transition ${
                         active
-                          ? "bg-green-600 text-white"
-                          : "bg-white text-gray-700"
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-sm"
+                          : "bg-white text-gray-700 border-gray-300 hover:border-emerald-300"
                       }`}
                     >
                       {t.label}
-                      <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${active ? "bg-emerald-500/40 text-white" : "bg-gray-100 text-gray-600"}`}>
                         {t.count}
                       </span>
                     </button>
@@ -289,7 +325,7 @@ const BookedAppointment = () => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search doctor, specialty, type..."
-                  className="w-full border rounded-lg pl-10 pr-10 py-2.5 text-sm"
+                  className="w-full border border-gray-300 rounded-lg pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500"
                 />
 
                 {query && (
@@ -306,22 +342,23 @@ const BookedAppointment = () => {
 
           {/* Error */}
           {err && (
-            <div className="bg-red-50 border border-red-200 p-4 text-red-700 rounded">
+            <div className="bg-red-50 border border-red-200 p-4 text-red-700 rounded-lg shadow-sm">
               {err}
             </div>
           )}
 
           {/* Empty */}
           {!loading && filteredByQuery.length === 0 && !selected && (
-            <div className="bg-white border rounded-lg p-6 text-center">
-              <p className="font-medium">No appointments found</p>
+            <div className="bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
+              <p className="font-semibold text-gray-800">No appointments found</p>
+              <p className="mt-1 text-sm text-gray-500">Try switching tabs or clearing search terms.</p>
 
               <button
                 onClick={() => {
-                  setFilter("upcoming");
+                  setFilter("today");
                   setQuery("");
                 }}
-                className="mt-4 border px-4 py-2 rounded-md"
+                className="mt-4 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
               >
                 Reset filters
               </button>

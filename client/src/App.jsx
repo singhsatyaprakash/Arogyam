@@ -37,6 +37,7 @@ import Notes from "./pages/Doctor/Notes";
 import CaseStudies from "./pages/Doctor/CaseStudies";
 import ShareIdeas from "./pages/Doctor/ShareIdeas";
 import Settings from "./pages/Doctor/Settings";
+import DailyRoutinePatient from "./pages/Patient/DailyRoutinePatient.jsx";
 
 // import VerifyEmailPage from "./component/VerifyEmailPage";
 
@@ -64,7 +65,7 @@ const App = () => {
         <Route path="/patient/video-call/:sessionId" element={<PatientProtectedWrapper><VideoCallPateintSide /></PatientProtectedWrapper>} />
         <Route path="/patient/video-calls" element={<PatientProtectedWrapper><VideoCallWithDoctorHistory/></PatientProtectedWrapper>} />
         <Route path="/patient/reviews" element={<PatientProtectedWrapper><PatientReviews/></PatientProtectedWrapper>} />
-
+        <Route path="/patient/daily-routine" element={<PatientProtectedWrapper><DailyRoutinePatient /></PatientProtectedWrapper>} />
 
 
 

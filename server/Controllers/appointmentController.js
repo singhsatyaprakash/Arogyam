@@ -920,4 +920,41 @@ exports.doctorRescheduleAppointment = async (req, res) => {
   }
 };
 
+// POST /appointments/:appointmentId/doctor-complete
+exports.doctorCompleteAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const doctorId = String(req.user?.id || "");
+
+    if (!mongoose.Types.ObjectId.isValid(String(appointmentId)) || !mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ success: false, message: "Invalid appointmentId/doctorId" });
+    }
+
+    const appt = await Appointment.findById(appointmentId);
+    if (!appt) {
+      return res.status(404).json({ success: false, message: "Appointment not found" });
+    }
+
+    if (String(appt.doctor) !== doctorId) {
+      return res.status(403).json({ success: false, message: "You can only complete your own appointments" });
+    }
+
+    if (String(appt.status) === "cancelled") {
+      return res.status(400).json({ success: false, message: "Cancelled appointment cannot be completed" });
+    }
+
+    if (String(appt.status) === "completed") {
+      return res.json({ success: true, message: "Appointment already completed", data: appt.getPublicDetails() });
+    }
+
+    appt.status = "completed";
+    await appt.save();
+
+    return res.json({ success: true, message: "Appointment marked as completed", data: appt.getPublicDetails() });
+  } catch (err) {
+    console.error("doctorCompleteAppointment error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 

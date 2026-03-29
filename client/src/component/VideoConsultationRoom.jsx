@@ -5,6 +5,10 @@ import peer from "../services/peer";
 import "./VideoConsultationRoom.css";
 import VideoNavbar from "./VideoNavbar";
 import { VideoFunctionality } from "./VideoFunctionality";
+import axios from "axios";
+
+const API_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
+
 const VideoConsultationRoom = ({ role, session }) => {
   console.log(session);
   const socket = useSocket();
@@ -32,6 +36,75 @@ const VideoConsultationRoom = ({ role, session }) => {
   const myVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localStreamRef = useRef(null);
+
+  const getDoctorAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem("token") || localStorage.getItem("doctorToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
+  const endVideoSession = useCallback(async () => {
+    const sessionId = session?._id;
+
+    if (!sessionId) {
+      console.warn("No session id found; skipping session end update");
+      return;
+    }
+
+    try {
+      const token =
+        localStorage.getItem("token") ||
+        (role === "doctor"
+          ? localStorage.getItem("doctorToken")
+          : localStorage.getItem("patientToken"));
+
+      if (!token) {
+        console.warn("No auth token found; skipping video session end update");
+        return;
+      }
+      
+      const endpoint = role === "doctor"
+        ? `${API_URL}/videos/sessions/${sessionId}/leave/doctor`
+        : `${API_URL}/videos/sessions/${sessionId}/leave/patient`;
+
+      console.log(`${role} ending video session and calculating duration...`);
+      await axios.post(
+        endpoint,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+    } catch (err) {
+      console.error(
+        "Failed to end video session:",
+        err?.response?.data?.message || err?.message || err
+      );
+    }
+  }, [role, session]);
+
+  const markAppointmentCompletedIfDoctor = useCallback(async () => {
+    const appointmentId =
+      session?.appointment?._id || session?.appointmentId || session?.appointment;
+
+    if (!appointmentId) {
+      console.warn("No appointment id found in session; skipping completion update");
+      return;
+    }
+
+    try {
+      console.log("Marking appointment as completed in backend...");
+      await axios.post(
+        `${API_URL}/appointments/${appointmentId}/doctor-complete`,
+        {},
+        { headers: getDoctorAuthHeaders() }
+      );
+    } catch (err) {
+      console.error(
+        "Failed to mark appointment as completed:",
+        err?.response?.data?.message || err?.message || err
+      );
+    }
+  }, [session, getDoctorAuthHeaders]);
 
   const attachLocalTracks = useCallback((stream) => {
     stream.getTracks().forEach((track) => {
@@ -144,7 +217,7 @@ const VideoConsultationRoom = ({ role, session }) => {
     });
   }, []);
 
-  const handleEndCall = useCallback(() => {
+  const handleEndCall = useCallback(async () => {
   // tell other user call ended
   if (remoteSocketId) {
     socket.emit("call:end", { to: remoteSocketId });
@@ -184,13 +257,16 @@ const VideoConsultationRoom = ({ role, session }) => {
   // recreate peer connection if your peer service supports it
   peer.createPeer();
 
+  // End video session first to record duration, then mark appointment completed
+  await endVideoSession();
+  await markAppointmentCompletedIfDoctor();
+
   // navigate to video calls page
   const navigationPath = `/${role}/video-calls`;
-  console.log("Navigating to:", navigationPath);
   navigate(navigationPath);
-}, [remoteSocketId, socket, remoteStream, role, navigate]);
+}, [remoteSocketId, socket, remoteStream, role, navigate, endVideoSession, markAppointmentCompletedIfDoctor]);
 
-const handleCallEnded = useCallback(() => {
+const handleCallEnded = useCallback(async () => {
   console.log("handleCallEnded triggered with role:", role);
   
   if (localStreamRef.current) {
@@ -211,11 +287,14 @@ const handleCallEnded = useCallback(() => {
 
   peer.peer.close();
   peer.createPeer();
-  
+
+  // End video session to record duration
+  await endVideoSession();
+
   const navigationPath = `/${role}/video-calls`;
   console.log("Navigating to:", navigationPath);
   navigate(navigationPath);
-}, [remoteStream, navigate, role]);
+}, [remoteStream, navigate, role, endVideoSession]);
 
 const handleCallEndedEvent = useCallback(() => {
   console.log("call:ended event received");

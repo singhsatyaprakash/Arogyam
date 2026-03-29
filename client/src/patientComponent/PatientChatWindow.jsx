@@ -2,6 +2,7 @@ import { useSocket } from "../contexts/SocketContext";
 import { useContext, useEffect, useState, useRef } from "react";
 import { PatientContext } from "../contexts/PatientContext";
 import { IoMdClose } from "react-icons/io";
+import { FaPaperPlane, FaCircle } from "react-icons/fa";
 import noProfileImage from "../assets/noProfile.webp";
 import axios from "axios";
 
@@ -92,10 +93,13 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
 
   if (!selectedDoctor) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <p className="text-2xl font-semibold text-gray-600">No Conversation Selected</p>
-          <p className="text-gray-400 mt-2">Select a doctor to start chatting</p>
+      <div className="flex-1 flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-emerald-50/60">
+        <div className="text-center px-6">
+          <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-4">
+            💬
+          </div>
+          <p className="text-2xl font-semibold text-gray-700">No Conversation Selected</p>
+          <p className="text-gray-500 mt-2">Choose a doctor from the left to start your chat.</p>
         </div>
       </div>
     );
@@ -104,25 +108,30 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-green-50 to-green-50 shadow-sm">
+      <div className="p-4 border-b border-emerald-100 flex items-center justify-between bg-gradient-to-r from-emerald-50/90 to-cyan-50/90 shadow-sm">
         <div className="flex items-center gap-3">
           <img
             src={selectedDoctor.doctor?.profileImage || noProfileImage}
             alt={selectedDoctor.doctor?.name}
-            className="w-12 h-12 rounded-full object-cover border-2 border-green-200"
+            className="w-12 h-12 rounded-full object-cover border-2 border-emerald-200"
             onError={(e) => (e.target.src = noProfileImage)}
           />
           <div>
-            <h2 className="font-semibold text-gray-800">
+            <h2 className="font-semibold text-gray-800 tracking-tight text-base sm:text-lg">
               {selectedDoctor.doctor?.name || "Doctor"}
             </h2>
-            <p className="text-xs text-gray-500">Consultation Fee: ₹{selectedDoctor.fee}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                <FaCircle className="text-[8px]" /> Online
+              </span>
+              <p className="text-xs text-gray-500">Fee: ₹{selectedDoctor.fee}</p>
+            </div>
           </div>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="p-2 hover:bg-green-100 rounded-full transition"
+            className="p-2 hover:bg-emerald-100 rounded-xl transition"
           >
             <IoMdClose className="text-2xl text-gray-600" />
           </button>
@@ -130,9 +139,12 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      <div
+        className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gradient-to-b from-gray-50 to-emerald-50/30"
+        style={{ backgroundImage: "radial-gradient(rgba(16,185,129,0.07) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+      >
         {error && (
-          <div className="flex justify-center p-3 bg-red-50 text-red-600 rounded text-sm">
+          <div className="flex justify-center p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
             {error}
           </div>
         )}
@@ -142,8 +154,10 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <p>Start your conversation with {selectedDoctor.doctor?.name || "the doctor"}</p>
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <p className="bg-white/90 border border-emerald-100 rounded-full px-4 py-2 shadow-sm text-sm sm:text-base">
+              Start your conversation with {selectedDoctor.doctor?.name || "the doctor"}
+            </p>
           </div>
         ) : (
 
@@ -155,17 +169,17 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
               }`}
             >
               <div
-                className={`max-w-xs rounded-lg px-4 py-2 ${
+                className={`max-w-[86%] sm:max-w-[74%] rounded-2xl px-4 py-2.5 shadow-sm ${
                   msg.senderType === "patient"
-                    ? "bg-green-500 text-white rounded-br-none"
-                    : "bg-gray-300 text-gray-800 rounded-bl-none"
+                    ? "bg-emerald-500 text-white rounded-br-md"
+                    : "bg-white border border-gray-200 text-gray-800 rounded-bl-md"
                 }`}
               >
-                <p className="break-words">{msg.text}</p>
+                <p className="break-words leading-relaxed">{msg.text}</p>
                 <p className={`text-xs mt-1 ${
                   msg.senderType === "patient"
-                    ? "text-green-100"
-                    : "text-gray-600"
+                    ? "text-emerald-100"
+                    : "text-gray-500"
                 }`}>
                   {formatTime(msg.createdAt)}
                 </p>
@@ -178,22 +192,25 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t bg-white flex gap-2">
-        <input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message..."
-          disabled={sending}
-          className="flex-1 border border-gray-300 px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-green-400 disabled:bg-gray-100"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!message.trim() || sending}
-          className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          {sending ? "..." : "Send"}
-        </button>
+      <div className="p-3 sm:p-4 border-t border-gray-200 bg-white">
+        <div className="flex gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-2 shadow-sm">
+          <input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
+            disabled={sending}
+            className="flex-1 bg-transparent px-3 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-100 text-sm sm:text-base"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!message.trim() || sending}
+            className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 sm:px-5 py-2.5 rounded-xl font-medium transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            {sending ? "..." : "Send"}
+            {!sending && <FaPaperPlane className="text-xs" />}
+          </button>
+        </div>
       </div>
     </div>
   );

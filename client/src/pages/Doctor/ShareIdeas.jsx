@@ -70,30 +70,36 @@ const ShareIdeas = () => {
     ));
   };
 
+  const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0);
+  const totalShares = posts.reduce((sum, post) => sum + post.shares, 0);
+  const communityReach = totalLikes + totalShares * 10;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-rose-50/60 via-white to-orange-50/40">
       <DoctorNavbar />
       
       <main className="p-4 md:p-6 lg:ml-64">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Welcome back, Dr. Satyal</h1>
-            <p className="text-gray-500">Friday, December 19, 2025</p>
-          </div>
 
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-700 flex items-center gap-2">
-              <FaLightbulb className="text-red-500" />
+          <div className="mb-8 rounded-2xl sm:rounded-3xl border border-rose-100 bg-white/90 p-5 sm:p-6 shadow-sm backdrop-blur">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                <FaLightbulb />
+              </span>
               Share Your Ideas & Solutions
             </h2>
-            <p className="text-gray-500">Help the medical community grow</p>
+            <p className="text-gray-600 mt-2">Help the medical community grow through practical clinical insights</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="text-xs rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-rose-700">Knowledge Exchange</span>
+              <span className="text-xs rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-sky-700">Clinical Tips</span>
+              <span className="text-xs rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-emerald-700">Community Impact</span>
+            </div>
           </div>
 
           {/* Create Post Form */}
-          <div className="mb-8 bg-white rounded-xl shadow-sm border p-6">
+          <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
                 <FaLightbulb className="text-red-500 text-xl" />
               </div>
               <div>
@@ -109,25 +115,25 @@ const ShareIdeas = () => {
                   placeholder="Title of your post..."
                   value={newPost.title}
                   onChange={(e) => setNewPost({...newPost, title: e.target.value})}
-                  className="w-full p-3 border border-gray-300 rounded-lg text-lg font-medium"
+                  className="w-full p-3 border border-gray-300 rounded-xl text-lg font-medium focus:ring-2 focus:ring-rose-100 focus:border-rose-300 outline-none"
                 />
                 <textarea
                   placeholder="Share your ideas, solutions, and best practices for patient care..."
                   value={newPost.content}
                   onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                  className="w-full h-48 p-3 border border-gray-300 rounded-lg"
+                  className="w-full h-44 sm:h-48 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-100 focus:border-rose-300 outline-none"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-col-reverse sm:flex-row gap-2">
                   <button
                     onClick={publishPost}
-                    className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2"
+                    className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-2.5 rounded-xl hover:from-red-600 hover:to-rose-700 transition flex items-center justify-center gap-2"
                   >
                     <FaPaperPlane />
                     Publish Post
                   </button>
                   <button
                     onClick={() => setShowForm(false)}
-                    className="border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-50 transition"
+                    className="border border-gray-300 px-6 py-2.5 rounded-xl hover:bg-gray-50 transition"
                   >
                     Cancel
                   </button>
@@ -137,10 +143,10 @@ const ShareIdeas = () => {
               <div>
                 <div
                   onClick={() => setShowForm(true)}
-                  className="p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-300 hover:bg-red-50 transition text-center"
+                  className="p-5 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:border-red-300 hover:bg-red-50/60 transition text-center"
                 >
                   <FaLightbulb className="text-red-500 text-2xl mx-auto mb-2" />
-                  <p className="text-gray-600">Click here to share your ideas with the medical community</p>
+                  <p className="text-gray-700 font-medium">Click here to share your ideas with the medical community</p>
                   <p className="text-sm text-gray-500 mt-1">Your insights can help improve patient care worldwide</p>
                 </div>
               </div>
@@ -149,47 +155,47 @@ const ShareIdeas = () => {
 
           {/* Community Posts */}
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-700">Community Posts</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Community Posts</h3>
             
             {posts.map((post) => (
-              <div key={post.id} className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
+              <div key={post.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                <div className="p-5 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                     <div>
                       <h4 className="font-bold text-gray-800 text-lg mb-1">{post.title}</h4>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                         <span className="font-medium">{post.author}</span>
-                        <span>{post.date}</span>
+                        <span>{new Date(`${post.date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">
+                      <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
                         Cardiology
                       </span>
                     </div>
                   </div>
                   
-                  <p className="text-gray-600 mb-6">{post.content}</p>
+                  <p className="text-gray-600 mb-6 leading-relaxed">{post.content}</p>
                   
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-100">
+                    <div className="flex flex-wrap items-center gap-5">
                       <button
                         onClick={() => likePost(post.id)}
-                        className="flex items-center gap-2 text-gray-600 hover:text-red-500"
+                        className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition"
                       >
                         <FaThumbsUp />
                         <span>{post.likes}</span>
                       </button>
-                      <button className="flex items-center gap-2 text-gray-600 hover:text-blue-500">
+                      <button className="flex items-center gap-2 text-gray-600 hover:text-blue-500 transition">
                         <FaComment />
                         <span>{post.comments}</span>
                       </button>
-                      <button className="flex items-center gap-2 text-gray-600 hover:text-green-500">
+                      <button className="flex items-center gap-2 text-gray-600 hover:text-green-500 transition">
                         <FaShare />
                         <span>{post.shares}</span>
                       </button>
                     </div>
-                    <button className="text-red-500 hover:text-red-600 font-medium">
+                    <button className="text-red-500 hover:text-red-600 font-semibold text-sm sm:text-base transition">
                       Read Full Article →
                     </button>
                   </div>
@@ -200,38 +206,36 @@ const ShareIdeas = () => {
 
           {/* Statistics */}
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
                   <FaLightbulb className="text-red-500" />
                 </div>
                 <div>
                   <h3 className="text-gray-500 text-sm">Total Posts</h3>
-                  <p className="text-2xl font-bold text-gray-800">{posts.length + 1}</p>
+                  <p className="text-2xl font-bold text-gray-800">{posts.length}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
                   <FaThumbsUp className="text-blue-500" />
                 </div>
                 <div>
                   <h3 className="text-gray-500 text-sm">Total Likes</h3>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {posts.reduce((sum, post) => sum + post.likes, 0)}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-800">{totalLikes}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-xl shadow-sm border">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
                   <FaShare className="text-green-500" />
                 </div>
                 <div>
                   <h3 className="text-gray-500 text-sm">Community Reach</h3>
-                  <p className="text-2xl font-bold text-gray-800">500+</p>
+                  <p className="text-2xl font-bold text-gray-800">{communityReach}+</p>
                 </div>
               </div>
             </div>

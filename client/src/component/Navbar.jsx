@@ -23,38 +23,43 @@ const Navbar = () => {
   }, []);
 
   const primaryBtnClass = role === 'patient'
-    ? 'bg-green-500 hover:bg-green-600'
-    : 'bg-red-500 hover:bg-red-600';
+    ? 'bg-emerald-600 hover:bg-emerald-700'
+    : 'bg-rose-600 hover:bg-rose-700';
   const logoColorClass = role === 'patient' ? 'text-green-500' : 'text-red-500';
-  // const loginTextClass = role === 'patient' ? 'text-green-600' : 'text-red-600';
+  const brandAccentClass = role === 'patient' ? 'text-emerald-600' : 'text-rose-600';
+  const softAccentBg = role === 'patient' ? 'from-emerald-50 to-cyan-50' : 'from-rose-50 to-orange-50';
+  const linkHoverClass = role === 'patient' ? 'hover:text-emerald-700' : 'hover:text-rose-700';
+  const mobileBorderClass = role === 'patient' ? 'border-emerald-100' : 'border-rose-100';
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-md border-b">
-      <div className="w-full px-6 py-3 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <div className="w-full px-4 sm:px-6 py-3 flex items-center justify-between">
 
         {/* LEFT: Logo */}
-        <div className="flex items-center gap-2">
-          <FaUserMd className={`text-2xl ${logoColorClass}`} />
-          <span className="text-xl font-bold text-gray-800">
-            Aro<span className={` ${logoColorClass}`}>gyam</span>
+        <Link to="/" className="flex items-center gap-2.5">
+          <span className={`h-10 w-10 rounded-xl bg-gradient-to-br ${softAccentBg} border border-gray-200 inline-flex items-center justify-center`}>
+            <FaUserMd className={`text-xl ${logoColorClass}`} />
           </span>
-        </div>
+          <span className="text-xl font-bold text-gray-800 tracking-tight">
+            Aro<span className={brandAccentClass}>gyam</span>
+          </span>
+        </Link>
 
         {/* DESKTOP MENU */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
-          <Link to="/" className="hover:text-red-500 transition">
+        <div className="hidden md:flex items-center gap-2 text-sm font-medium text-gray-700">
+          <Link to="/" className={`px-3 py-2 rounded-lg transition ${linkHoverClass} hover:bg-gray-100`}>
             Home
           </Link>
-          <Link to="/about" className="hover:text-red-500 transition">
+          <Link to="/about" className={`px-3 py-2 rounded-lg transition ${linkHoverClass} hover:bg-gray-100`}>
             About
           </Link>
-          <Link to="/contact" className="hover:text-red-500 transition">
+          <Link to="/contact" className={`px-3 py-2 rounded-lg transition ${linkHoverClass} hover:bg-gray-100`}>
             Contact
           </Link>
 
           <button
             onClick={() => navigate("/")}
-            className={`px-5 py-2 ${primaryBtnClass} text-white rounded-lg font-semibold transition`}
+            className={`ml-2 px-5 py-2.5 ${primaryBtnClass} text-white rounded-xl font-semibold transition shadow-sm`}
           >
             Login
           </button>
@@ -62,7 +67,7 @@ const Navbar = () => {
 
         {/* MOBILE MENU BUTTON */}
         <button
-          className="md:hidden text-2xl text-gray-700"
+          className="md:hidden text-2xl text-gray-700 h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-gray-100"
           onClick={() => setOpen(!open)}
         >
           {open ? <FaTimes /> : <FaBars />}
@@ -71,15 +76,15 @@ const Navbar = () => {
 
       {/* MOBILE MENU */}
       {open && (
-        <div className="md:hidden bg-white border-t shadow-md">
-          <div className="flex flex-col px-6 py-4 gap-4 text-gray-700 font-medium">
-            <Link onClick={() => setOpen(false)} to="/">
+        <div className={`md:hidden bg-white border-t ${mobileBorderClass} shadow-md`}>
+          <div className="flex flex-col px-5 py-4 gap-2 text-gray-700 font-medium">
+            <Link onClick={() => setOpen(false)} to="/" className={`px-3 py-2 rounded-lg transition ${linkHoverClass} hover:bg-gray-100`}>
               Home
             </Link>
-            <Link onClick={() => setOpen(false)} to="/about">
+            <Link onClick={() => setOpen(false)} to="/about" className={`px-3 py-2 rounded-lg transition ${linkHoverClass} hover:bg-gray-100`}>
               About
             </Link>
-            <Link onClick={() => setOpen(false)} to="/contact">
+            <Link onClick={() => setOpen(false)} to="/contact" className={`px-3 py-2 rounded-lg transition ${linkHoverClass} hover:bg-gray-100`}>
               Contact
             </Link>
 
@@ -88,7 +93,7 @@ const Navbar = () => {
                 setOpen(false);
                 navigate("/");
               }}
-              className={`mt-2 w-full py-2 ${primaryBtnClass} text-white rounded-lg font-semibold transition`}
+              className={`mt-2 w-full py-2.5 ${primaryBtnClass} text-white rounded-xl font-semibold transition shadow-sm`}
             >
               Login
             </button>

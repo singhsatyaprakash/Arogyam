@@ -23,7 +23,6 @@ const formatTime12Hour = (timeStr) => {
 };
 
 const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUpdated, onJoinVideo }) => {
-  console.log(appointment);
   const {token, patient } = useContext(PatientContext);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -179,11 +178,11 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
   if (!open) return null;
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           onClick={onClose}
-          className="inline-flex w-fit items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
+          className="inline-flex w-fit items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50"
         >
           ← Back to list
         </button>
@@ -193,7 +192,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
             <button
               onClick={() => onJoinVideo(appointment)}
               disabled={busy}
-              className="inline-flex w-fit items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+              className="inline-flex w-fit items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
             >
               Join video call
             </button>
@@ -211,7 +210,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                 if (initial) fetchFreeSlots(initial);
               }}
               disabled={busy}
-              className="inline-flex w-fit items-center justify-center rounded-md border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-800 hover:bg-green-100 disabled:opacity-60"
+              className="inline-flex w-fit items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-60"
             >
               Reschedule
             </button>
@@ -226,7 +225,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                 setCancelOpen(true);
               }}
               disabled={busy}
-              className="inline-flex w-fit items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex w-fit items-center justify-center rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Cancel appointment
             </button>
@@ -235,19 +234,19 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
       </div>
 
       {err && (
-        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
           {err}
         </div>
       )}
 
       {/* Doctor header */}
-      <div className="mt-4 rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-5 shadow-md">
+      <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50/30 to-cyan-50/40 p-5 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-green-200 bg-gray-100 shadow-sm">
+          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
             {doctorMeta.profileImage ? (
               <img src={doctorMeta.profileImage} alt={doctorMeta.name} className="h-full w-full object-cover" />
             ) : (
-              <div className="h-full w-full flex items-center justify-center text-green-600">
+              <div className="h-full w-full flex items-center justify-center text-emerald-600">
                 <FaUserMd className="text-3xl" />
               </div>
             )}
@@ -255,15 +254,15 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="truncate text-xl font-bold text-gray-900">{doctorMeta.name}</div>
+              <div className="truncate text-xl font-bold text-gray-900 tracking-tight">{doctorMeta.name}</div>
 
               <span
                 className={[
                   "rounded-full px-2.5 py-1 text-xs font-semibold flex items-center gap-1",
-                  doctorMeta.online ? "bg-green-100 text-green-800 ring-1 ring-green-300" : "bg-gray-100 text-gray-700 ring-1 ring-gray-300"
+                  doctorMeta.online ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300" : "bg-gray-100 text-gray-700 ring-1 ring-gray-300"
                 ].join(' ')}
               >
-                <FaCircle className={doctorMeta.online ? 'text-green-500 text-[6px]' : 'text-gray-400 text-[6px]'} />
+                <FaCircle className={doctorMeta.online ? 'text-emerald-500 text-[6px]' : 'text-gray-400 text-[6px]'} />
                 {doctorMeta.online ? 'Online' : 'Offline'}
               </span>
 
@@ -306,10 +305,10 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
       </div>
 
       {/* Details */}
-      <div className="mt-5 rounded-xl border border-gray-200 bg-white shadow-md overflow-hidden">
-        <div className="px-5 py-4 border-b bg-gradient-to-r from-green-50 to-blue-50">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b bg-gradient-to-r from-emerald-50 to-cyan-50">
           <div className="text-base font-bold text-gray-900 flex items-center gap-2">
-            <FaClipboardList className="text-green-600" />
+            <FaClipboardList className="text-emerald-600" />
             Appointment Details
           </div>
           <div className="mt-1 text-xs text-gray-600">
@@ -319,18 +318,18 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
 
         <div className="divide-y divide-gray-100">
           {details.map((row) => (
-            <div key={row.k} className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-1 sm:gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
+            <div key={row.k} className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-1 sm:gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors">
               <div className="text-sm font-semibold text-gray-700">{row.k}</div>
               <div className="text-sm text-gray-900 break-words whitespace-pre-wrap font-medium flex items-center gap-2">
                 {row.isIcon === 'verified' ? (
                   row.v ? (
-                    <><FaCheckCircle className="text-green-600" /> Yes</>
+                    <><FaCheckCircle className="text-emerald-600" /> Yes</>
                   ) : (
                     <><FaTimesCircle className="text-gray-400" /> No</>
                   )
                 ) : row.isIcon === 'online' ? (
                   row.v ? (
-                    <><FaCircle className="text-green-500 text-xs" /> Online</>
+                    <><FaCircle className="text-emerald-500 text-xs" /> Online</>
                   ) : (
                     <><FaCircle className="text-gray-400 text-xs" /> Offline</>
                   )
@@ -354,26 +353,26 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) setCancelOpen(false);
           }}
         >
-          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-gradient-to-r from-rose-50 to-red-50">
               <div className="text-base font-semibold text-gray-900">Cancel appointment</div>
               <div className="mt-1 text-sm text-gray-600">
                 Please tell us why you want to cancel (optional).
               </div>
             </div>
 
-            <div className="px-4 py-4">
+            <div className="px-5 py-4">
               <label className="block text-sm font-medium text-gray-800">Reason</label>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 rows={4}
-                className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
                 placeholder="Eg: Not available at that time..."
               />
 
@@ -383,7 +382,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                   href="/terms-and-conditions#cancellation"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-green-700 hover:underline"
+                  className="text-rose-700 hover:underline"
                 >
                   Terms &amp; Conditions for cancellation
                 </a>
@@ -391,11 +390,11 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
               </div>
             </div>
 
-            <div className="px-4 py-3 border-t bg-white flex items-center justify-end gap-2">
+            <div className="px-5 py-3 border-t bg-white flex items-center justify-end gap-2">
               <button
                 onClick={() => setCancelOpen(false)}
                 disabled={busy}
-                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
               >
                 Close
               </button>
@@ -406,7 +405,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                   setCancelOpen(false);
                 }}
                 disabled={busy}
-                className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {busy ? 'Cancelling...' : 'Confirm cancel'}
               </button>
@@ -420,18 +419,18 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) setRescheduleOpen(false);
           }}
         >
-          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b bg-gradient-to-r from-emerald-50 to-cyan-50">
               <div className="text-base font-semibold text-gray-900">Reschedule appointment</div>
               <div className="mt-1 text-sm text-gray-600">Pick a date and choose from available free slots.</div>
             </div>
 
-            <div className="px-4 py-4 space-y-3">
+            <div className="px-5 py-4 space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-800">Date</label>
                 <input
@@ -443,7 +442,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                     setSlotsErr('');
                     if (v) fetchFreeSlots(v);
                   }}
-                  className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                  className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
 
@@ -454,7 +453,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                     type="button"
                     onClick={() => rescheduleDate && fetchFreeSlots(rescheduleDate)}
                     disabled={slotsLoading || !rescheduleDate}
-                    className="text-xs font-medium text-green-700 hover:underline disabled:opacity-60"
+                    className="text-xs font-medium text-emerald-700 hover:underline disabled:opacity-60"
                   >
                     Refresh slots
                   </button>
@@ -494,7 +493,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                     href="/terms-and-conditions#rescheduling"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-green-700 hover:underline"
+                    className="text-emerald-700 hover:underline"
                   >
                     Terms &amp; Conditions for rescheduling
                   </a>
@@ -503,11 +502,11 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
               </div>
             </div>
 
-            <div className="px-4 py-3 border-t bg-white flex items-center justify-end gap-2">
+            <div className="px-5 py-3 border-t bg-white flex items-center justify-end gap-2">
               <button
                 onClick={() => setRescheduleOpen(false)}
                 disabled={busy}
-                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
               >
                 Close
               </button>
@@ -517,7 +516,7 @@ const AppointmentDeatilsModel = ({ open, appointment, onClose, onCancelled, onUp
                   setRescheduleOpen(false);
                 }}
                 disabled={busy || !rescheduleDate || !selectedTime}
-                className="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {busy ? 'Rescheduling...' : 'Confirm reschedule'}
               </button>

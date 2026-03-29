@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DoctorNavbar from "../../doctorComponent/DoctorNavbar";
-import { FaClock, FaUser, FaSync } from "react-icons/fa";
+import { FaClock, FaUser, FaSync, FaCheckCircle, FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
 import { DoctorContext } from "../../contexts/DoctorContext";
 import AppointmentReschedule from "../../doctorComponent/AppointmentReschedule";
@@ -9,11 +9,18 @@ import AppointmentCancel from "../../doctorComponent/AppointmentCancel";
 
 const API_URL = import.meta?.env?.VITE_API_URL || "http://localhost:3000";
 
+const getLocalIsoDate = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const Appointments = () => {
   const { doctor } = useContext(DoctorContext);
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("booked");
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
   const [expandedNotes, setExpandedNotes] = useState({});
@@ -55,9 +62,38 @@ const Appointments = () => {
   }, [fetchAppointments]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return appointments;
-    return appointments.filter((a) => a.status === filter);
+    const todayIso = getLocalIsoDate();
+    const base =
+      filter === "all"
+        ? appointments
+        : filter === "today"
+        ? appointments.filter((a) => a?.date === todayIso)
+        : appointments.filter((a) => a.status === filter);
+
+    return [...base].sort((a, b) => {
+      const aTs = new Date(`${a?.date || ""}T${a?.startTime || "00:00"}`).getTime();
+      const bTs = new Date(`${b?.date || ""}T${b?.startTime || "00:00"}`).getTime();
+
+      const safeA = Number.isNaN(aTs) ? Number.POSITIVE_INFINITY : aTs;
+      const safeB = Number.isNaN(bTs) ? Number.POSITIVE_INFINITY : bTs;
+      return safeA - safeB;
+    });
   }, [appointments, filter]);
+
+  const counts = useMemo(() => {
+    const booked = appointments.filter((x) => x.status === "booked").length;
+    const completed = appointments.filter((x) => x.status === "completed").length;
+    const cancelled = appointments.filter((x) => x.status === "cancelled").length;
+    const today = getLocalIsoDate();
+    const todayCount = appointments.filter((x) => x?.date === today).length;
+    return {
+      all: appointments.length,
+      booked,
+      today: todayCount,
+      completed,
+      cancelled,
+    };
+  }, [appointments]);
 
   const toggleNotes = (id) => {
     setExpandedNotes((prev) => ({
@@ -130,10 +166,17 @@ const Appointments = () => {
   };
 
   const statusStyle = (status) => {
-    if (status === "booked") return "bg-blue-100 text-blue-600";
-    if (status === "completed") return "bg-green-100 text-green-600";
-    if (status === "cancelled") return "bg-red-100 text-red-600";
-    return "bg-gray-100 text-gray-600";
+    if (status === "booked") return "bg-blue-50 text-blue-700 border border-blue-200";
+    if (status === "completed") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+    if (status === "cancelled") return "bg-red-50 text-red-700 border border-red-200";
+    return "bg-gray-100 text-gray-600 border border-gray-200";
+  };
+
+  const typeStyle = (type) => {
+    if (type === "video") return "bg-violet-50 text-violet-700 border border-violet-200";
+    if (type === "voice") return "bg-amber-50 text-amber-700 border border-amber-200";
+    if (type === "in-person") return "bg-sky-50 text-sky-700 border border-sky-200";
+    return "bg-gray-50 text-gray-700 border border-gray-200";
   };
 
   const startAppointment = async (appointment) => {
@@ -184,90 +227,97 @@ const Appointments = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-rose-50/40 via-white to-gray-50">
       <DoctorNavbar />
 
-      <main className="p-6 lg:ml-64">
+      <main className="p-4 sm:p-6 lg:ml-64">
         <div className="max-w-7xl mx-auto">
 
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                Welcome back
-                {doctor?.doctor?.name && `, Dr. ${doctor.doctor.name}`}
-              </h1>
+          <div className="mb-6 rounded-2xl sm:rounded-3xl border border-rose-100 bg-gradient-to-r from-white to-rose-50/60 p-5 sm:p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                  Welcome back
+                  {doctor?.doctor?.name && `, Dr. ${doctor.doctor.name}`}
+                </h1>
 
-              <p className="text-gray-500">
-                {new Date().toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
+                <p className="text-gray-600 mt-1 inline-flex items-center gap-2">
+                  <FaCalendarAlt className="text-rose-500" />
+                  {new Date().toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+
+              <button
+                onClick={fetchAppointments}
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-xl hover:from-red-600 hover:to-red-700 transition shadow-sm"
+              >
+                <FaSync />
+                Refresh
+              </button>
             </div>
-
-            <button
-              onClick={fetchAppointments}
-              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-            >
-              <FaSync />
-              Refresh
-            </button>
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {["all", "booked", "completed", "cancelled"].map((k) => (
+          <div className="flex flex-wrap gap-2 mb-5">
+            {["all", "booked", "today", "completed", "cancelled"].map((k) => (
               <button
                 key={k}
                 onClick={() => setFilter(k)}
-                className={`px-4 py-2 rounded-lg ${
+                className={`px-4 py-2 rounded-xl border text-sm font-medium transition ${
                   filter === k
-                    ? "bg-red-500 text-white"
-                    : "bg-white border text-gray-600"
+                    ? "bg-red-500 border-red-500 text-white shadow-sm"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-red-200 hover:text-red-600"
                 }`}
               >
-                {k === "booked"
-                  ? "Upcoming"
-                  : k.charAt(0).toUpperCase() + k.slice(1)}
+                <span>
+                  {k === "booked"
+                    ? "Upcoming"
+                    : k === "today"
+                    ? "Today"
+                    : k.charAt(0).toUpperCase() + k.slice(1)}
+                </span>
+                <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs ${filter === k ? "bg-white/20 text-white" : "bg-gray-100 text-gray-700"}`}>
+                  {counts[k]}
+                </span>
               </button>
             ))}
           </div>
 
-          {loading && <p className="text-gray-500">Loading appointments...</p>}
-          {errMsg && <p className="text-red-500">{errMsg}</p>}
+          {loading && <p className="text-gray-500 mb-4">Loading appointments...</p>}
+          {errMsg && <p className="text-red-600 mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{errMsg}</p>}
 
-          {/* Empty state */}
-          {!loading && filtered.length === 0 && (
-            <div className="text-center text-gray-400 py-20">
-              No appointments found
-            </div>
-          )}
           {/* Stats */}
-          <div className="m-10 grid md:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-xl border shadow-sm">
-              <p className="text-gray-500">Total</p>
-              <p className="text-3xl font-bold">{appointments.length}</p>
+          <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+              <p className="text-gray-500 text-sm">Total Appointments</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{counts.all}</p>
             </div>
 
-            <div className="bg-white p-5 rounded-xl border shadow-sm">
-              <p className="text-gray-500">Upcoming</p>
-              <p className="text-3xl font-bold">
-                {appointments.filter((x) => x.status === "booked").length}
-              </p>
+            <div className="bg-white p-5 rounded-2xl border border-blue-200 shadow-sm">
+              <p className="text-blue-600 text-sm font-medium">Upcoming</p>
+              <p className="text-3xl font-bold text-blue-700 mt-1">{counts.booked}</p>
             </div>
 
-            <div className="bg-white p-5 rounded-xl border shadow-sm">
-              <p className="text-gray-500">Completed</p>
-              <p className="text-3xl font-bold">
-                {appointments.filter((x) => x.status === "completed").length}
-              </p>
+            <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm sm:col-span-2 lg:col-span-1">
+              <p className="text-emerald-600 text-sm font-medium">Completed</p>
+              <p className="text-3xl font-bold text-emerald-700 mt-1">{counts.completed}</p>
             </div>
           </div>
 
+          {/* Empty state */}
+          {!loading && filtered.length === 0 && (
+            <div className="text-center text-gray-500 py-14 bg-white border border-dashed border-gray-300 rounded-2xl">
+              No appointments found
+            </div>
+          )}
+
           {/* Cards */}
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
             {filtered.map((a) => {
               const notes = a?.notes || "NA";
               const isLong = notes.length > 100;
@@ -276,17 +326,17 @@ const Appointments = () => {
               return (
                 <div
                   key={a._id}
-                  className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition"
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 hover:shadow-md transition"
                 >
                   {/* Date */}
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex gap-2 items-center text-gray-700">
+                  <div className="flex justify-between items-start gap-2 mb-3">
+                    <div className="flex gap-2 items-center text-gray-700 min-w-0">
                       <FaClock className="text-red-500" />
-                      <span className="font-semibold">{formatDate(a)}</span>
+                      <span className="font-semibold text-sm sm:text-base leading-tight break-words">{formatDate(a)}</span>
                     </div>
 
                     <span
-                      className={`px-3 py-1 text-xs rounded-full ${statusStyle(
+                      className={`px-3 py-1 text-xs rounded-full capitalize whitespace-nowrap ${statusStyle(
                         a.status
                       )}`}
                     >
@@ -304,12 +354,12 @@ const Appointments = () => {
                       <h3 className="font-semibold text-gray-800">
                         {a?.patient?.name || "Patient"}
                       </h3>
-                      <p className="text-sm text-gray-500">{a.type}</p>
+                      <p className={`text-xs inline-flex px-2.5 py-1 rounded-full mt-1 capitalize ${typeStyle(a.type)}`}>{a.type}</p>
                     </div>
                   </div>
 
                   {/* Notes */}
-                  <div className="mb-4 text-sm text-gray-600">
+                  <div className="mb-4 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl p-3 min-h-[76px]">
                     <span className="font-semibold text-gray-700">
                       Notes:
                     </span>{" "}
@@ -320,7 +370,7 @@ const Appointments = () => {
                     {isLong && (
                       <button
                         onClick={() => toggleNotes(a._id)}
-                        className="ml-2 text-red-500 text-sm"
+                        className="ml-2 text-red-500 text-sm font-medium"
                       >
                         {showFull ? "Read Less" : "Read More"}
                       </button>
@@ -328,11 +378,11 @@ const Appointments = () => {
                   </div>
 
                   {/* Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2">
                     <button
                       disabled={a.status !== "booked"}
                       onClick={() => startAppointment(a)}
-                      className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 disabled:opacity-40"
+                      className="w-full sm:w-auto sm:flex-1 bg-red-500 text-white px-3 py-2.5 rounded-xl hover:bg-red-600 disabled:opacity-40 transition text-sm font-medium whitespace-nowrap"
                     >
                       {a.type === "video" ? "Start Video" : "Start"}
                     </button>
@@ -340,7 +390,7 @@ const Appointments = () => {
                     <button
                       disabled={a.status !== "booked"}
                       onClick={() => openRescheduleModal(a)}
-                      className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-40"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-40 transition text-sm font-medium whitespace-nowrap"
                     >
                       Reschedule
                     </button>
@@ -348,11 +398,17 @@ const Appointments = () => {
                     <button
                       disabled={a.status !== "booked"}
                       onClick={() => openCancelModal(a)}
-                      className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-40"
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-40 transition text-sm font-medium whitespace-nowrap"
                     >
                       Cancel
                     </button>
                   </div>
+
+                  {a.status === "completed" && (
+                    <div className="mt-3 inline-flex items-center gap-2 text-emerald-700 text-sm font-medium bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg">
+                      <FaCheckCircle /> Consultation completed
+                    </div>
+                  )}
                 </div>
               );
             })}

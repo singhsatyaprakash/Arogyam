@@ -219,6 +219,53 @@ const leaveSession = async ({ req, res, actorType }) => {
   }
 };
 
+const getDoctorCallHistory = async (req, res) => {
+  try {
+    const doctorId = getActorIdFromRequest(req);
+    // console.log(doctorId);
+
+    if (!mongoose.Types.ObjectId.isValid(String(doctorId))) {
+      return res.status(400).json({ success: false, message: "Invalid doctor id" });
+    }
+    const history = await populateSessionQuery(
+      VideoSession.find({ doctor: doctorId }).sort({ createdAt: -1 })
+    );
+
+    return res.json({
+      success: true,
+      data: history,
+      total: history.length,
+    });
+  } catch (error) {
+    console.error("getDoctorCallHistory error:", error);
+    return sendError(res, null, "Failed to fetch video call history");
+  }
+};
+
+const getPatientCallHistory = async (req, res) => {
+  try {
+    const patientId = getActorIdFromRequest(req);
+    // console.log(patientId);
+
+    if (!mongoose.Types.ObjectId.isValid(String(patientId))) {
+      return res.status(400).json({ success: false, message: "Invalid patient id" });
+    }
+
+    const history = await populateSessionQuery(
+      VideoSession.find({ patient: patientId }).sort({ createdAt: -1 })
+    );
+    console.log(history);
+    return res.json({
+      success: true,
+      data: history,
+      total: history.length,
+    });
+  } catch (error) {
+    console.error("getPatientCallHistory error:", error);
+    return sendError(res, null, "Failed to fetch video consultation history");
+  }
+};
+
 exports.createOrGetDoctorSession = (req, res) =>
   createOrGetSession({ req, res, actorType: "doctor" });
 
@@ -236,3 +283,7 @@ exports.joinPatientSession = (req, res) => joinSession({ req, res, actorType: "p
 exports.leaveDoctorSession = (req, res) => leaveSession({ req, res, actorType: "doctor" });
 
 exports.leavePatientSession = (req, res) => leaveSession({ req, res, actorType: "patient" });
+
+exports.getDoctorCallHistory = getDoctorCallHistory;
+
+exports.getPatientCallHistory = getPatientCallHistory;

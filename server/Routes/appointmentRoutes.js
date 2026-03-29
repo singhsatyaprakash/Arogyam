@@ -29,6 +29,9 @@ router.post('/:appointmentId/doctor-cancel',doctorMiddleware.authenticateDoctor,
 // Doctor reschedules (reserve new slot, update appt, release old slot)
 router.post('/:appointmentId/doctor-reschedule',doctorMiddleware.authenticateDoctor,appointmentController.doctorRescheduleAppointment);
 
+// Doctor marks appointment completed (after video call ends)
+router.post('/:appointmentId/doctor-complete',doctorMiddleware.authenticateDoctor,appointmentController.doctorCompleteAppointment);
+
 // Public single doctor by id
 router.get('/doctor/:id', appointmentController.getDoctor);
 

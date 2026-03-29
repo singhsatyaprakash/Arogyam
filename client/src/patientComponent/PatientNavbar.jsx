@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import {
   FaUser,
   FaCalendarAlt,
@@ -14,7 +14,7 @@ import {
   FaClipboardList,
   FaUserMd,
 } from "react-icons/fa";
-import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { PatientContext } from "../contexts/PatientContext";
 import noProfileImage from "../assets/noProfile.webp";
 
@@ -22,13 +22,7 @@ const PatientNavbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setMobileOpen(false);
-    setProfileOpen(false);
-  }, [location.pathname]);
 
   const { patient, setPatient } = useContext(PatientContext);
 
@@ -52,12 +46,12 @@ const PatientNavbar = () => {
     false;
 
   const logoColor = "text-green-500";
-  const activeClass = "bg-green-50 text-green-600";
+  const activeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm";
   const inactiveClass =
-    "text-gray-600 hover:bg-gray-100 hover:text-green-600";
-  const badgeClass = "bg-green-600 text-white";
+    "text-gray-600 hover:bg-gray-100 hover:text-emerald-700 border border-transparent";
+  const badgeClass = "bg-emerald-600 text-white";
   const linkBase =
-    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition";
+    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition";
 
   const navLinks = [
     { path: "/patient/dashboard", label: "Dashboard", icon: FaHome },
@@ -95,17 +89,19 @@ const PatientNavbar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:flex lg:flex-col bg-white border-r z-40 shadow-sm">
-        <div className="h-16 flex items-center px-4">
-          <Link to="/patient/dashboard" className="flex items-center gap-2">
-            <FaUser className={`${logoColor} text-2xl`} />
-            <span className="font-bold text-lg text-gray-800">
-              Aro<span className="text-green-500">gyam</span>
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:flex lg:flex-col bg-white/95 backdrop-blur border-r border-emerald-100 z-40 shadow-lg">
+        <div className="h-20 flex items-center px-5 border-b border-emerald-100 bg-gradient-to-r from-emerald-50 to-cyan-50">
+          <Link to="/patient/dashboard" className="flex items-center gap-3">
+            <span className="h-10 w-10 rounded-xl bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm">
+              <FaUser className={`${logoColor} text-xl`} />
+            </span>
+            <span className="font-bold text-xl text-gray-800">
+              Aro<span className="text-emerald-600">gyam</span>
             </span>
           </Link>
         </div>
 
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-5 space-y-2 overflow-y-auto">
           {navLinks.map((link) => {
             const Icon = link.icon;
 
@@ -134,12 +130,12 @@ const PatientNavbar = () => {
           })}
         </nav>
 
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3">
+        <div className="p-4 border-t border-emerald-100 bg-gradient-to-b from-white to-emerald-50/60">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
             <img
               src={profileImage}
               alt="profile"
-              className="w-10 h-10 rounded-full object-cover border"
+              className="w-11 h-11 rounded-full object-cover border border-emerald-200"
             />
 
             <div className="flex-1 min-w-0">
@@ -162,14 +158,14 @@ const PatientNavbar = () => {
           <div className="mt-3 space-y-2">
             <Link
               to="/patient/settings"
-              className="block w-full text-left text-sm px-3 py-2 rounded-md hover:bg-gray-100"
+              className="block w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-white border border-transparent hover:border-gray-200"
             >
               Settings
             </Link>
 
             <button
               onClick={handleLogout}
-              className="w-full text-left px-3 py-2 text-sm text-red-600 rounded-md hover:bg-gray-100 flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100 flex items-center gap-2"
             >
               <FaSignOutAlt /> Logout
             </button>
@@ -178,12 +174,12 @@ const PatientNavbar = () => {
       </aside>
 
       {/* Mobile Topbar */}
-      <header className="lg:hidden w-full bg-white shadow sticky top-0 z-50">
-        <div className="px-4 py-3 flex items-center justify-between">
+      <header className="lg:hidden w-full bg-white/95 backdrop-blur border-b border-emerald-100 sticky top-0 z-50">
+        <div className="px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="p-2 text-gray-700"
+              className="p-2 text-gray-700 rounded-lg hover:bg-gray-100"
             >
               <FaBars />
             </button>
@@ -192,22 +188,24 @@ const PatientNavbar = () => {
               to="/patient/dashboard"
               className="flex items-center gap-2"
             >
-              <FaUser className={`${logoColor} text-xl`} />
+              <span className="h-8 w-8 rounded-lg bg-emerald-100 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                <FaUser className={`${logoColor} text-sm`} />
+              </span>
 
               <span className="font-bold text-md text-gray-800">
-                Aro<span className="text-green-500">gyam</span>
+                Aro<span className="text-emerald-600">gyam</span>
               </span>
             </Link>
           </div>
 
           <button
             onClick={() => setProfileOpen((p) => !p)}
-            className="flex items-center gap-2 p-1 rounded-md hover:bg-gray-100"
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100"
           >
             <img
               src={profileImage}
               alt="profile"
-              className="w-8 h-8 rounded-full object-cover border"
+              className="w-8 h-8 rounded-full object-cover border border-emerald-200"
             />
 
             <FaChevronDown className="text-gray-500" />
@@ -223,29 +221,31 @@ const PatientNavbar = () => {
             onClick={() => setMobileOpen(false)}
           />
 
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-md">
-            <div className="h-16 flex items-center px-4 justify-between">
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-xl border-r border-emerald-100">
+            <div className="h-20 flex items-center px-4 justify-between bg-gradient-to-r from-emerald-50 to-cyan-50 border-b border-emerald-100">
               <Link
                 to="/patient/dashboard"
                 className="flex items-center gap-2"
                 onClick={() => setMobileOpen(false)}
               >
-                <FaUser className={`${logoColor} text-2xl`} />
+                <span className="h-9 w-9 rounded-lg bg-white border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                  <FaUser className={`${logoColor} text-base`} />
+                </span>
 
                 <span className="font-bold text-lg text-gray-800">
-                  Aro<span className="text-green-500">gyam</span>
+                  Aro<span className="text-emerald-600">gyam</span>
                 </span>
               </Link>
 
               <button
                 onClick={() => setMobileOpen(false)}
-                className="p-2"
+                className="p-2 rounded-lg hover:bg-white"
               >
                 <FaTimes />
               </button>
             </div>
 
-            <nav className="px-2 py-4 space-y-1 overflow-y-auto">
+            <nav className="px-3 py-4 space-y-2 overflow-y-auto">
               {navLinks.map((link) => {
                 const Icon = link.icon;
 
@@ -281,7 +281,7 @@ const PatientNavbar = () => {
                 <img
                   src={profileImage}
                   alt="profile"
-                  className="w-10 h-10 rounded-full object-cover border"
+                  className="w-10 h-10 rounded-full object-cover border border-emerald-200"
                 />
 
                 <div>
@@ -299,7 +299,7 @@ const PatientNavbar = () => {
                 <Link
                   to="/patient/settings"
                   onClick={() => setMobileOpen(false)}
-                  className="block text-sm px-3 py-2 rounded-md hover:bg-gray-100"
+                  className="block text-sm px-3 py-2 rounded-lg hover:bg-gray-100"
                 >
                   Settings
                 </Link>
@@ -309,7 +309,7 @@ const PatientNavbar = () => {
                     handleLogout();
                     setMobileOpen(false);
                   }}
-                  className="w-full text-left text-sm px-3 py-2 text-red-600 rounded-md hover:bg-gray-100"
+                  className="w-full text-left text-sm px-3 py-2 text-red-600 rounded-lg hover:bg-red-50"
                 >
                   Logout
                 </button>
@@ -322,8 +322,8 @@ const PatientNavbar = () => {
       {/* Profile dropdown */}
       {profileOpen && (
         <div className="lg:hidden fixed right-4 top-16 z-50">
-          <div className="w-56 bg-white border rounded-md shadow-lg">
-            <div className="p-3 border-b">
+          <div className="w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+            <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-cyan-50">
               <div className="font-semibold text-gray-800 truncate">
                 {displayName}
               </div>
@@ -337,6 +337,7 @@ const PatientNavbar = () => {
               <Link
                 to="/patient/dashboard"
                 className="block px-4 py-2 text-sm hover:bg-gray-50"
+                onClick={() => setProfileOpen(false)}
               >
                 Dashboard
               </Link>
@@ -344,6 +345,7 @@ const PatientNavbar = () => {
               <Link
                 to="/patient/settings"
                 className="block px-4 py-2 text-sm hover:bg-gray-50"
+                onClick={() => setProfileOpen(false)}
               >
                 Settings
               </Link>

@@ -12,13 +12,22 @@ const Home = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState("patient");
   const [showPassword, setShowPassword] = useState(false);
-  const { doctor, setDoctor } = useContext(DoctorContext);
-  const { patient, setPatient } = useContext(PatientContext);
+  const { setDoctor } = useContext(DoctorContext);
+  const { setPatient } = useContext(PatientContext);
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  const rolePrimaryClass =
+    role === "patient"
+      ? "bg-emerald-600 hover:bg-emerald-700"
+      : "bg-rose-600 hover:bg-rose-700";
+  const roleFocusClass =
+    role === "patient"
+      ? "focus-within:ring-emerald-200 focus-within:border-emerald-500"
+      : "focus-within:ring-rose-200 focus-within:border-rose-500";
 
   useEffect(() => {
     localStorage.setItem("role", role);
@@ -73,32 +82,32 @@ const Home = () => {
     <>
       <Navbar />
       <div
-        className="pt-20 bg-cover bg-center flex items-center justify-center relative opacity-95"
+        className="pt-20 min-h-screen bg-cover bg-center flex items-center justify-center relative"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/80 to-emerald-50/80 backdrop-blur-[2px]"></div>
 
-        <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-xl px-6 py-6 sm:px-8 sm:py-8">
+        <div className="relative z-10 w-full max-w-sm bg-white/95 rounded-2xl shadow-2xl border border-gray-200 px-6 py-6 sm:px-8 sm:py-8">
           <div className="flex justify-center mb-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <FaHeartbeat className="text-xl text-green-600" />
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${role === "patient" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+              <FaHeartbeat className="text-xl" />
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-center text-gray-800">
-            Welcome Back
+          <h2 className="text-2xl font-bold text-center text-gray-900 tracking-tight">
+            Welcome to Arogyam
           </h2>
           <p className="text-gray-500 text-center mb-5 text-sm">
             Sign in to your account
           </p>
 
-          <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-5 border border-gray-200">
             {/*toggle between patient and doctor */}
             <button
               onClick={() => setRole("patient")}
               className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
                 role === "patient"
-                  ? "bg-green-500 text-white shadow-md"
+                  ? "bg-emerald-600 text-white shadow-sm"
                   : "text-gray-600 hover:bg-white"
               }`}
             >
@@ -109,7 +118,7 @@ const Home = () => {
               onClick={() => setRole("doctor")}
               className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
                 role === "doctor"
-                  ? "bg-red-500 text-white shadow-md"
+                  ? "bg-rose-600 text-white shadow-sm"
                   : "text-gray-600 hover:bg-white"
               }`}
             >
@@ -122,7 +131,7 @@ const Home = () => {
             {/* email input */}
             <div>
               <label className="text-xs font-medium text-gray-700 block mb-1">Email Address</label>
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-green-400">
+              <div className={`flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 ${roleFocusClass}`}>
                 <FaEnvelope className="text-gray-400 mr-3" />
                 <input
                   type="email"
@@ -140,7 +149,7 @@ const Home = () => {
               <label className="text-xs font-medium text-gray-700 block mb-1">
                 Password
               </label>
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-green-400">
+              <div className={`flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 ${roleFocusClass}`}>
                 <FaLock className="text-gray-400 mr-3" />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -166,11 +175,7 @@ const Home = () => {
 
             <button
               type="submit"
-              className={`w-full py-2 rounded-xl text-white font-bold transition shadow-md flex items-center justify-center gap-2 ${
-                role === "patient"
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-red-500 hover:bg-red-600"
-              }`}
+              className={`w-full py-2 rounded-xl text-white font-bold transition shadow-sm flex items-center justify-center gap-2 ${rolePrimaryClass}`}
             >
               <FaSignInAlt />
               Sign In as {role === "patient" ? "Patient" : "Doctor"}
@@ -183,7 +188,7 @@ const Home = () => {
 
           <button
             onClick={() => navigate("/register/patient")}
-            className="w-full mb-2 py-2 rounded-xl border border-green-500 text-green-600 font-semibold hover:bg-green-50 transition flex items-center justify-center gap-2"
+            className={`w-full mb-2 py-2 rounded-xl border font-semibold transition flex items-center justify-center gap-2 ${role === "patient" ? "border-emerald-500 text-emerald-700 hover:bg-emerald-50" : "border-emerald-400 text-emerald-700 hover:bg-emerald-50"}`}
           >
             <FaUserPlus />
             Sign up as Patient
@@ -191,7 +196,7 @@ const Home = () => {
 
           <button
             onClick={() => navigate("/register/doctor")}
-            className="w-full py-2 rounded-xl border border-red-500 text-red-600 font-semibold hover:bg-red-50 transition flex items-center justify-center gap-2"
+            className="w-full py-2 rounded-xl border border-rose-500 text-rose-700 font-semibold transition flex items-center justify-center gap-2 hover:bg-rose-50"
           >
             <FaUserMd />
             Sign up as Doctor
