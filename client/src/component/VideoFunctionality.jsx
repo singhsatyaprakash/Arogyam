@@ -80,13 +80,17 @@ export const VideoFunctionality = ({ role, onEndCall, onToggleFullscreen, isFull
 
         <button
           onClick={onToggleFullscreen}
-          className={isFullscreen ? inactiveToggleButton : softButton}
-          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          className={`inline-flex items-center justify-center rounded-full w-11 h-11 sm:w-12 sm:h-12 border transition duration-200 ${
+            isFullscreen
+              ? "bg-white text-gray-900 border-white"
+              : "bg-white/10 text-white border-white/15 hover:bg-white/20"
+          }`}
+          title={isFullscreen ? "Minimize" : "Maximize"}
         >
           {isFullscreen ? (
-            <FullscreenExitIcon fontSize="medium" />
+            <FullscreenExitIcon fontSize="small" />
           ) : (
-            <FullscreenIcon fontSize="medium" />
+            <FullscreenIcon fontSize="small" />
           )}
         </button>
 
