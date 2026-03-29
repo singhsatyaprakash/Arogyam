@@ -32,7 +32,9 @@ const VideoConsultationRoom = ({ role, session }) => {
   const [remoteSocketId, setRemoteSocketId] = useState(null);
   const [myStream, setMyStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const roomContainerRef = useRef(null);
   const myVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -301,6 +303,23 @@ const handleCallEndedEvent = useCallback(() => {
   handleCallEnded();
 }, [handleCallEnded]);
 
+const handleToggleFullscreen = useCallback(async () => {
+  const roomEl = roomContainerRef.current;
+  if (!roomEl) return;
+
+  try {
+    if (!document.fullscreenElement) {
+      await roomEl.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  } catch (err) {
+    console.error("Unable to toggle fullscreen", err);
+  }
+}, []);
+
     // socket listeners
 useEffect(() => {
   socket.on("user:joined", handleUserJoined);
@@ -394,36 +413,63 @@ useEffect(() => {
     };
   }, []);
 
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, []);
+
   return (
-    <div>
-      
+    <div className="video-room-page" ref={roomContainerRef}>
       <VideoNavbar role={role} doctor={session.doctor} patient={session.patient} connected={!!remoteSocketId} />
       <div className="video-consulation-container">
-
-        {myStream && (
-          <div className="myvideo-wrapper">
-            <h2>{myName}</h2>
-            <video className="myvideo"
-              ref={myVideoRef}
-              autoPlay
-              muted
-              playsInline
-            />
-          </div>
-        )}
-
-        {remoteStream && (
+        <div className="video-stage">
           <div className="remotevideo-wrapper">
-            <h2>{remoteName}</h2>
-            <video className="remotevideo"
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-            />
+            <div className="participant-tag">{remoteName}</div>
+
+            {remoteStream ? (
+              <video className="remotevideo"
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <div className="video-placeholder">
+                Waiting for {remoteName} to join...
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="myvideo-wrapper">
+            <div className="participant-tag">{myName} (You)</div>
+
+            {myStream ? (
+              <video className="myvideo"
+                ref={myVideoRef}
+                autoPlay
+                muted
+                playsInline
+              />
+            ) : (
+              <div className="video-placeholder video-placeholder--small">
+                Camera preview unavailable
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      <VideoFunctionality role={role} onEndCall={handleEndCall} />
+      <VideoFunctionality
+        role={role}
+        onEndCall={handleEndCall}
+        onToggleFullscreen={handleToggleFullscreen}
+        isFullscreen={isFullscreen}
+      />
     </div>
   );
 };

@@ -10,8 +10,10 @@ import MicOffIcon from "@mui/icons-material/MicOff";
 import CallEndIcon from "@mui/icons-material/CallEnd";
 import PauseCircleFilledIcon from "@mui/icons-material/PauseCircleFilled";
 import PlayCircleFilledIcon from "@mui/icons-material/PlayCircleFilled";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
-export const VideoFunctionality = ({ role, onEndCall }) => {
+export const VideoFunctionality = ({ role, onEndCall, onToggleFullscreen, isFullscreen }) => {
   const [showControls, setShowControls] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -74,6 +76,18 @@ export const VideoFunctionality = ({ role, onEndCall }) => {
       <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-[#0f1a23]/80 backdrop-blur-xl border border-white/15 shadow-[0_10px_35px_rgba(0,0,0,0.35)]">
         <button className={softButton}>
           <MoreHorizIcon fontSize="medium" />
+        </button>
+
+        <button
+          onClick={onToggleFullscreen}
+          className={isFullscreen ? inactiveToggleButton : softButton}
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? (
+            <FullscreenExitIcon fontSize="medium" />
+          ) : (
+            <FullscreenIcon fontSize="medium" />
+          )}
         </button>
 
         {role === "doctor" && (
