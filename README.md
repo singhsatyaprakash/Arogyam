@@ -1,5 +1,10 @@
 # Arogyam
 
+## Live Deployment
+
+- Frontend: [https://arogyam-swasthya.onrender.com](https://arogyam-swasthya.onrender.com)
+- Backend: [https://arogyamserver.onrender.com](https://arogyamserver.onrender.com)
+
 Arogyam is a healthcare web platform focused on connecting patients and doctors through appointment booking, chat, and video consultation workflows.
 
 ## Author
@@ -33,20 +38,40 @@ Architecture preview:
 
 Open full image: [HLDImage.png](HLDImage.png)
 
-## Getting Started
+## Quick Start
 
-## Prerequisites
+### Prerequisites
 
-- Node.js 18+ installed
-- npm installed
+- Node.js 18+
+- npm
+- MongoDB database (Atlas/local)
 
-## Environment Variables
+### 1. Clone the Repository
 
-Create these files before running the app.
+```bash
+git clone https://github.com/singhsatyaprakash/Arogyam.git
+cd Arogyam
+```
 
-### Server env file
+### 2. Install Dependencies
 
-Create `server/.env` with:
+Install backend dependencies:
+
+```bash
+cd server
+npm install
+```
+
+Install frontend dependencies:
+
+```bash
+cd ../client
+npm install
+```
+
+### 3. Configure Environment Variables
+
+Create server env file at `server/.env`:
 
 ```env
 PORT=3000
@@ -62,47 +87,33 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=your_admin_password
 ```
 
-### Client env file
-
-Create `client/.env` with:
+Create client env file at `client/.env`:
 
 ```env
 VITE_SOCKET_URL=http://localhost:3000
 VITE_API_URL=http://localhost:3000
 ```
 
-## Run Locally
+### 4. Run the Application
 
-1. Install backend dependencies:
+Start backend in terminal 1:
 
 ```bash
 cd server
-npm install
-```
-
-2. Start backend server:
-
-```bash
 npm start
 ```
 
-3. Open a new terminal and install frontend dependencies:
+Start frontend in terminal 2:
 
 ```bash
 cd client
-npm install
-```
-
-4. Start frontend app:
-
-```bash
 npm run dev
 ```
 
-5. Open the URL shown by Vite (usually `http://localhost:5173`).
+Open `http://localhost:5173` in your browser.
 
 ## Notes
 
-- Backend runs on `http://localhost:3000`
-- Frontend runs on `http://localhost:5173`
-- Do not commit real secrets in `.env` files
+- Backend default URL: `http://localhost:3000`
+- Frontend default URL: `http://localhost:5173`
+- Keep real secrets only in local `.env` files
