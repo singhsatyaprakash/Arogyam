@@ -44,7 +44,7 @@ const PatientDashboard = () => {
       title: "Messages",
       subtitle: "Continue doctor conversations",
       icon: <FaComments className="text-violet-600" />,
-      action: () => navigate("/patient/chat"),
+      action: () => navigate("/patient/chats"),
     },
     {
       title: "Medicine List",

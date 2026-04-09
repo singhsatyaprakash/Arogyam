@@ -33,6 +33,41 @@ const formatDate = (dateStr) => {
   });
 };
 
+const getDoctorName = (doctor) => {
+  if (!doctor) return "";
+  if (typeof doctor === "string") return doctor;
+
+  return (
+    doctor?.name ||
+    doctor?.fullName ||
+    `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim() ||
+    ""
+  );
+};
+
+const getDoctorSpecialization = (doctor) => {
+  if (!doctor || typeof doctor === "string") return "";
+  return doctor?.specialization || "";
+};
+
+const normalizeForSearch = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const matchesQuery = (query, ...values) => {
+  const normalizedQuery = normalizeForSearch(query);
+  if (!normalizedQuery) return true;
+
+  const searchBlob = normalizeForSearch(values.filter(Boolean).join(" "));
+  if (!searchBlob) return false;
+
+  const tokens = normalizedQuery.split(" ");
+  return tokens.every((token) => searchBlob.includes(token));
+};
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 /* ---------------- COMPONENT ---------------- */
@@ -175,21 +210,16 @@ const BookedAppointment = () => {
   /* ---------------- SEARCH ---------------- */
 
   const filteredByQuery = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = query.trim();
     if (!q) return filtered;
 
     return filtered.filter((a) => {
-      const doctor = (a?.doctor?.name || "").toLowerCase();
-      const spec = (a?.doctor?.specialization || "").toLowerCase();
-      const type = (a?.type || "").toLowerCase();
-      const date = formatDate(a?.date).toLowerCase();
+      const doctor = getDoctorName(a?.doctor);
+      const spec = getDoctorSpecialization(a?.doctor);
+      const type = a?.type || "";
+      const date = formatDate(a?.date);
 
-      return (
-        doctor.includes(q) ||
-        spec.includes(q) ||
-        type.includes(q) ||
-        date.includes(q)
-      );
+      return matchesQuery(q, doctor, spec, type, date);
     });
   }, [filtered, query]);
 
