@@ -1,10 +1,21 @@
 const Doctor = require('../Models/doctor.model');
+const PendingVerification = require('../Models/pendingVerification.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { doctorRescheduleAppointment } = require('./appointmentController');
 const ChatConnection = require('../Models/chatConnection.model');
+const { sendOtpEmail } = require('../Services/mailService');
+const {
+  OTP_EXPIRES_MINUTES,
+  RESEND_COOLDOWN_SECONDS,
+  generateOtp,
+  hashOtp,
+  getOtpExpiryDate,
+  getResendAvailableDate
+} = require('../Services/otpService');
 
 const SUPPORTED_CONSULTATION_TYPES = new Set(['chat', 'video', 'voice', 'in-person']);
+const MAX_OTP_ATTEMPTS = 5;
 
 const parseDateOnly = (value) => {
   if (!value || typeof value !== 'string') return null;
@@ -40,66 +51,269 @@ const isWeekend = (date) => {
   return day === 0 || day === 6;
 };
 
-// Register a new doctor...
-const registerDoctor = async (req, res) => {
+const normalizeCsvOrArray = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (!value) return [];
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const validateDoctorRegistrationPayload = (payload = {}) => {
+  const {
+    title,
+    name,
+    email,
+    phone,
+    password,
+    specialization,
+    experience,
+    qualifications,
+    languages,
+    chatFee,
+    voiceFee,
+    videoFee,
+    fromTime,
+    toTime
+  } = payload;
+
+  if (!name || !email || !phone || !password || !specialization || experience == null || chatFee == null || voiceFee == null || videoFee == null || !fromTime || !toTime) {
+    return { ok: false, message: 'Please fill all required fields' };
+  }
+
+  const expNum = Number(experience);
+  const chatNum = Number(chatFee);
+  const voiceNum = Number(voiceFee);
+  const videoNum = Number(videoFee);
+
+  if ([expNum, chatNum, voiceNum, videoNum].some((n) => Number.isNaN(n) || n < 0)) {
+    return { ok: false, message: 'Experience and consultation fees must be valid non-negative numbers' };
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const prefTitle = String(title || 'Dr.').trim();
+  const rawName = String(name).trim();
+  const nameWithTitle = rawName.startsWith(prefTitle) ? rawName : `${prefTitle} ${rawName}`.trim();
+
+  return {
+    ok: true,
+    data: {
+      name: nameWithTitle,
+      email: normalizedEmail,
+      phone: String(phone).trim(),
+      password: String(password),
+      specialization: String(specialization).trim(),
+      experience: expNum,
+      qualifications: normalizeCsvOrArray(qualifications),
+      languages: normalizeCsvOrArray(languages),
+      chatFee: chatNum,
+      voiceFee: voiceNum,
+      videoFee: videoNum,
+      fromTime: String(fromTime).trim(),
+      toTime: String(toTime).trim()
+    }
+  };
+};
+
+const sendDoctorRegistrationOtp = async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      phone,
-      password,
-      specialization,
-      experience,
-      qualifications,
-      languages,
-      chatFee,
-      voiceFee,
-      videoFee,
-      fromTime,
-      toTime
-    } = req.body;
-
-    if (!name || !email || !phone || !password || !specialization || experience == null || chatFee == null || voiceFee == null || videoFee == null || !fromTime || !toTime) {
-      return res.status(400).json({success: false, message: 'Please fill all required fields'});
+    const validation = validateDoctorRegistrationPayload(req.body);
+    if (!validation.ok) {
+      return res.status(400).json({ success: false, message: validation.message });
     }
-    const existingDoctor = await Doctor.findOne({ email: email.toLowerCase() });
+
+    const data = validation.data;
+    const existingDoctor = await Doctor.findOne({ email: data.email });
     if (existingDoctor) {
-      return res.status(400).json({success: false,message: 'Doctor with this email already exists'});
+      return res.status(400).json({ success: false, message: 'Doctor with this email already exists' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const existingPending = await PendingVerification.findOne({ email: data.email, role: 'doctor' });
+    if (existingPending && new Date(existingPending.resendAvailableAt) > new Date()) {
+      const waitSeconds = Math.ceil((new Date(existingPending.resendAvailableAt).getTime() - Date.now()) / 1000);
+      return res.status(429).json({ success: false, message: `Please wait ${waitSeconds}s before requesting another OTP` });
+    }
+
+    const otp = generateOtp();
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    await PendingVerification.findOneAndUpdate(
+      { email: data.email, role: 'doctor' },
+      {
+        $set: {
+          otpHash: hashOtp(otp),
+          otpExpiresAt: getOtpExpiryDate(),
+          resendAvailableAt: getResendAvailableDate(),
+          failedAttempts: 0,
+          payload: {
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            password: hashedPassword,
+            specialization: data.specialization,
+            experience: data.experience,
+            qualifications: data.qualifications,
+            languages: data.languages,
+            chatFee: data.chatFee,
+            voiceFee: data.voiceFee,
+            videoFee: data.videoFee,
+            fromTime: data.fromTime,
+            toTime: data.toTime
+          }
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await sendOtpEmail({ to: data.email, name: data.name, role: 'doctor', otp });
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email',
+      data: {
+        email: data.email,
+        expiresInMinutes: OTP_EXPIRES_MINUTES,
+        resendInSeconds: RESEND_COOLDOWN_SECONDS
+      }
+    });
+  } catch (error) {
+    console.error('Send doctor registration OTP error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const resendDoctorRegistrationOtp = async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const pending = await PendingVerification.findOne({ email, role: 'doctor' });
+    if (!pending) {
+      return res.status(404).json({ success: false, message: 'No pending verification found for this email' });
+    }
+
+    if (new Date(pending.resendAvailableAt) > new Date()) {
+      const waitSeconds = Math.ceil((new Date(pending.resendAvailableAt).getTime() - Date.now()) / 1000);
+      return res.status(429).json({ success: false, message: `Please wait ${waitSeconds}s before requesting another OTP` });
+    }
+
+    const otp = generateOtp();
+    pending.otpHash = hashOtp(otp);
+    pending.otpExpiresAt = getOtpExpiryDate();
+    pending.resendAvailableAt = getResendAvailableDate();
+    pending.failedAttempts = 0;
+    await pending.save();
+
+    await sendOtpEmail({
+      to: email,
+      name: pending.payload?.name,
+      role: 'doctor',
+      otp
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP resent successfully',
+      data: { resendInSeconds: RESEND_COOLDOWN_SECONDS }
+    });
+  } catch (error) {
+    console.error('Resend doctor registration OTP error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const verifyDoctorRegistrationOtp = async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+    }
+
+    const pending = await PendingVerification.findOne({ email, role: 'doctor' });
+    if (!pending) {
+      return res.status(404).json({ success: false, message: 'No pending verification found' });
+    }
+
+    if (new Date(pending.otpExpiresAt) < new Date()) {
+      await PendingVerification.deleteOne({ _id: pending._id });
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new OTP' });
+    }
+
+    if (hashOtp(otp) !== pending.otpHash) {
+      pending.failedAttempts = (pending.failedAttempts || 0) + 1;
+      if (pending.failedAttempts >= MAX_OTP_ATTEMPTS) {
+        await PendingVerification.deleteOne({ _id: pending._id });
+        return res.status(400).json({ success: false, message: 'Too many invalid attempts. Please register again' });
+      }
+      await pending.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    const payload = pending.payload || {};
+    const existingDoctor = await Doctor.findOne({ email });
+    if (existingDoctor) {
+      await PendingVerification.deleteOne({ _id: pending._id });
+      return res.status(400).json({ success: false, message: 'Doctor with this email already exists' });
+    }
+
     const doctor = new Doctor({
-      name,
-      email: email.toLowerCase(),
-      phone,
-      password: hashedPassword,
-      specialization,
-      experience: parseInt(experience),
-      qualifications: qualifications ? (Array.isArray(qualifications) ? qualifications : qualifications.split(',').map(q => q.trim())) : [],
-      languages: languages ? (Array.isArray(languages) ? languages : languages.split(',').map(lang => lang.trim())) : [],
+      name: payload.name,
+      email,
+      phone: payload.phone,
+      password: payload.password,
+      specialization: payload.specialization,
+      experience: Number(payload.experience),
+      qualifications: payload.qualifications,
+      languages: payload.languages,
       consultationFee: {
-        chat: parseInt(chatFee),
-        voice: parseInt(voiceFee),
-        video: parseInt(videoFee)
+        chat: Number(payload.chatFee),
+        voice: Number(payload.voiceFee),
+        video: Number(payload.videoFee)
       },
       availability: {
-        from: fromTime,
-        to: toTime
+        from: payload.fromTime,
+        to: payload.toTime
       }
     });
 
     await doctor.save();
 
-    const token = jwt.sign({id: doctor._id, email: doctor.email, role: 'doctor' }, process.env.JWT_SECRET || 'your_jwt_secret_key_here' ,{ expiresIn: '7d' });
-      doctor.token = token;
-      await doctor.save();
-    delete doctor.password;
-    res.status(201).json({success: true,message: 'Doctor registered successfully',data:{doctor,token}});
+    const token = jwt.sign(
+      { id: doctor._id, email: doctor.email, role: 'doctor' },
+      process.env.JWT_SECRET || 'your_jwt_secret_key_here',
+      { expiresIn: '7d' }
+    );
 
+    doctor.token = token;
+    doctor.lastLogin = Date.now();
+    await doctor.save();
+
+    await PendingVerification.deleteOne({ _id: pending._id });
+
+    const doctorData = doctor.getPublicProfile ? doctor.getPublicProfile() : doctor.toObject();
+    delete doctorData.password;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Doctor registered successfully',
+      data: { doctor: doctorData, token }
+    });
   } catch (error) {
-    console.error('Doctor registration error:', error);
-    res.status(500).json({success: false,message: 'Internal server error'});
+    console.error('Verify doctor registration OTP error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
+};
+
+// Register a new doctor...
+const registerDoctor = async (req, res) => {
+  return sendDoctorRegistrationOtp(req, res);
 };
 
 // Doctor login...
@@ -558,6 +772,9 @@ const createDoctorSlots = async (req, res) => {
 
 module.exports = {
   registerDoctor,
+  sendDoctorRegistrationOtp,
+  resendDoctorRegistrationOtp,
+  verifyDoctorRegistrationOtp,
   loginDoctor,
   getConnectionsList,
   getDoctorProfile,

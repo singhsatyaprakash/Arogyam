@@ -5,6 +5,9 @@ const patientMiddleware = require('../middlewares/patientMiddleware');
 
 
 router.post('/register', patientController.registerPatient);
+router.post('/register/send-otp', patientController.sendPatientRegistrationOtp);
+router.post('/register/resend-otp', patientController.resendPatientRegistrationOtp);
+router.post('/register/verify-otp', patientController.verifyPatientRegistrationOtp);
 router.post('/login', patientController.loginPatient);
 
 // router.get('/profile', patientController.getPatientProfile);
