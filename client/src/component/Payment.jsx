@@ -1,7 +1,22 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import PatientContext from '../contexts/PatientContext'
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import PatientContext from '../contexts/PatientContext';
+
+const loadRazorpayScript = () =>
+  new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -21,8 +36,7 @@ const Payment = () => {
     };
   }, [location.state, patient?._id]);
 
-  const [seconds, setSeconds] = useState(10);
-  const [status, setStatus] = useState('idle'); // idle | processing | success | error
+  const [status, setStatus] = useState('idle'); // idle | creating-order | opening-gateway | verifying | success | error
   const [error, setError] = useState('');
 
   const canStart = Boolean(payload?.doctorId && payload?.patientId && payload?.date && payload?.type && payload?.time);
@@ -30,27 +44,20 @@ const Payment = () => {
   useEffect(() => {
     if (!canStart) return;
 
-    setStatus('processing');
+    setStatus('creating-order');
     setError('');
-    setSeconds(10);
-
-    const t = setInterval(() => {
-      setSeconds((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-
-    return () => clearInterval(t);
-  }, [canStart]);
-
-  useEffect(() => {
-    if (!canStart) return;
-    if (status !== 'processing') return;
-    if (seconds !== 0) return;
 
     let cancelled = false;
 
-    (async () => {
+    const startPayment = async () => {
       try {
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/appointments/confirm-payment`, {
+        const scriptReady = await loadRazorpayScript();
+        if (!scriptReady) {
+          throw new Error('Unable to load Razorpay checkout');
+        }
+
+        const orderRes = await axios.post(`${import.meta.env.VITE_API_URL}/appointments/create-razorpay-order`, {
+          bookingType: 'appointment',
           doctorId: payload.doctorId,
           patientId: payload.patientId,
           date: payload.date,
@@ -59,21 +66,63 @@ const Payment = () => {
         });
 
         if (cancelled) return;
-        if (!res?.data?.success) throw new Error(res?.data?.message || 'Payment confirmation failed');
+        if (!orderRes?.data?.success) {
+          throw new Error(orderRes?.data?.message || 'Unable to create payment order');
+        }
 
-        setStatus('success');
+        const { keyId, orderId, amount, currency } = orderRes.data.data;
+        setStatus('opening-gateway');
 
-        // simple redirect after success
-        setTimeout(() => navigate('/patient/booked-appointment'), 800);
+        const razorpay = new window.Razorpay({
+          key: keyId,
+          amount,
+          currency,
+          name: 'Arogyam',
+          description: 'Appointment Payment',
+          order_id: orderId,
+          prefill: {
+            email: patient?.email || patient?.patient?.email || '',
+            name: patient?.name || patient?.patient?.name || '',
+          },
+          handler: async function (response) {
+            try {
+              setStatus('verifying');
+              const verifyRes = await axios.post(`${import.meta.env.VITE_API_URL}/appointments/verify-razorpay-payment`, response);
+              if (!verifyRes?.data?.success) {
+                throw new Error(verifyRes?.data?.message || 'Payment verification failed');
+              }
+              setStatus('success');
+              setTimeout(() => navigate('/patient/booked-appointment'), 1000);
+            } catch (verifyError) {
+              setStatus('error');
+              setError(verifyError?.response?.data?.message || verifyError?.message || 'Payment verification failed');
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setStatus('error');
+              setError('Payment was cancelled. Please try again.');
+            },
+          },
+          theme: {
+            color: '#059669',
+          },
+        });
+
+        razorpay.open();
       } catch (e) {
         if (cancelled) return;
         setStatus('error');
-        setError(e?.response?.data?.message || e?.message || 'Something went wrong');
+        setError(e?.response?.data?.message || e?.message || 'Unable to start payment');
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
-  }, [seconds, status, canStart, navigate, payload]);
+    startPayment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canStart, navigate, payload, patient]);
 
   if (!canStart) {
     return (
@@ -125,15 +174,21 @@ const Payment = () => {
             </div>
           </div>
 
-        {status === 'processing' && (
+        {status === 'creating-order' && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="text-sm text-emerald-900 font-medium">Processing payment... please wait {seconds}s</p>
-            <div className="mt-3 h-2 w-full rounded-full bg-emerald-100 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-emerald-500 transition-all duration-1000"
-                style={{ width: `${Math.max(0, ((10 - seconds) / 10) * 100)}%` }}
-              />
-            </div>
+            <p className="text-sm text-emerald-900 font-medium">Creating secure payment order...</p>
+          </div>
+        )}
+
+        {status === 'opening-gateway' && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm text-emerald-900 font-medium">Opening Razorpay checkout...</p>
+          </div>
+        )}
+
+        {status === 'verifying' && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm text-emerald-900 font-medium">Verifying payment and confirming booking...</p>
           </div>
         )}
 
@@ -155,7 +210,7 @@ const Payment = () => {
           </div>
         )}
 
-          {status === 'processing' && (
+          {(status === 'creating-order' || status === 'opening-gateway' || status === 'verifying') && (
             <p className="text-xs text-gray-500 text-center">
               Please do not refresh or close this page while payment is being confirmed.
             </p>
@@ -163,7 +218,7 @@ const Payment = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Payment
+export default Payment;

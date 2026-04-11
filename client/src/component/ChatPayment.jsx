@@ -1,9 +1,24 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PatientContext } from "../contexts/PatientContext";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { FaLock } from "react-icons/fa";
 import axios from "axios";
+
+const loadRazorpayScript = () =>
+  new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 
 const ChatPayment = () => {
   const location = useLocation();
@@ -15,63 +30,92 @@ const ChatPayment = () => {
   const [processing, setProcessing] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
-  const [countdown, setCountdown] = useState(10);
+  const [statusText, setStatusText] = useState("Creating payment order...");
 
   // Prevent multiple API calls
   const hasProcessed = useRef(false);
 
-  useEffect(() => {
-    if (!bookingData) {
-      navigate("/patient/appointments");
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          processPayment();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [bookingData]);
-
-  const processPayment = async () => {
+  const processPayment = useCallback(async () => {
     //Stop duplicate calls
     if (hasProcessed.current) return;
     hasProcessed.current = true;
 
     try {
       setProcessing(true);
+      setStatusText("Loading Razorpay checkout...");
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/chats/new-connection`,
-        {
-          doctorId: bookingData.doctorId,
-          patientId: patient.patient._id,
-          fee: bookingData.fee,
-          note: bookingData.note || "Chat session started",
-        }
-      );
-
-      console.log("Payment response:", response.data);
-
-      if (response.data.success) {
-        setSuccess(true);
-        setProcessing(false);
-
-        setTimeout(() => {
-          navigate("/patient/chats", {
-            state: { newConnection: response.data.data.connection },
-          });
-        }, 2000);
-      } else {
-        throw new Error(response.data.message || "Payment failed");
+      const patientId = patient?.patient?._id || patient?._id;
+      if (!patientId) {
+        throw new Error("Patient session missing");
       }
+
+      const scriptReady = await loadRazorpayScript();
+      if (!scriptReady) {
+        throw new Error("Unable to load Razorpay checkout");
+      }
+
+      const orderRes = await axios.post(`${import.meta.env.VITE_API_URL}/appointments/create-razorpay-order`, {
+        bookingType: "chat",
+        type: "chat",
+        doctorId: bookingData.doctorId,
+        patientId,
+      });
+
+      if (!orderRes?.data?.success) {
+        throw new Error(orderRes?.data?.message || "Unable to create payment order");
+      }
+
+      const { keyId, orderId, amount, currency } = orderRes.data.data;
+      setStatusText("Opening payment gateway...");
+
+      const razorpay = new window.Razorpay({
+        key: keyId,
+        amount,
+        currency,
+        name: "Arogyam",
+        description: "Chat Consultation Payment",
+        order_id: orderId,
+        prefill: {
+          email: patient?.patient?.email || patient?.email || "",
+          name: patient?.patient?.name || patient?.name || "",
+        },
+        handler: async function (response) {
+          try {
+            setStatusText("Verifying payment...");
+            const verifyRes = await axios.post(
+              `${import.meta.env.VITE_API_URL}/appointments/verify-razorpay-payment`,
+              response
+            );
+
+            if (!verifyRes?.data?.success) {
+              throw new Error(verifyRes?.data?.message || "Payment verification failed");
+            }
+
+            setSuccess(true);
+            setProcessing(false);
+
+            setTimeout(() => {
+              navigate("/patient/chats", {
+                state: { newConnection: verifyRes?.data?.data?.chatConnection || null },
+              });
+            }, 1200);
+          } catch (verifyError) {
+            setError(verifyError?.response?.data?.message || verifyError?.message || "Payment verification failed");
+            setProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setError("Payment was cancelled. Please try again.");
+            setProcessing(false);
+          },
+        },
+        theme: {
+          color: "#16a34a",
+        },
+      });
+
+      razorpay.open();
     } catch (err) {
       console.error("Payment processing error:", err);
       setError(
@@ -79,7 +123,16 @@ const ChatPayment = () => {
       );
       setProcessing(false);
     }
-  };
+  }, [bookingData, navigate, patient]);
+
+  useEffect(() => {
+    if (!bookingData) {
+      navigate("/patient/appointments");
+      return;
+    }
+
+    processPayment();
+  }, [bookingData, navigate, processPayment]);
 
   if (!bookingData) return null;
 
@@ -125,25 +178,13 @@ const ChatPayment = () => {
 
         {/* Status */}
         <div className="text-center mb-6">
-          {processing && countdown > 0 && (
+          {processing && (
             <div>
               <Loader2 className="w-16 h-16 animate-spin text-green-500 mx-auto mb-4" />
               <p className="text-gray-700 font-medium mb-2">
                 Processing Payment...
               </p>
-              <div className="text-4xl font-bold text-green-600 mb-2">
-                {countdown}
-              </div>
-              <p className="text-sm text-gray-500">seconds remaining</p>
-            </div>
-          )}
-
-          {processing && countdown === 0 && (
-            <div>
-              <Loader2 className="w-16 h-16 animate-spin text-green-500 mx-auto mb-4" />
-              <p className="text-gray-700 font-medium">
-                Finalizing your chat session...
-              </p>
+              <p className="text-sm text-gray-500">{statusText}</p>
             </div>
           )}
 
@@ -179,7 +220,7 @@ const ChatPayment = () => {
           <div className="text-center text-xs text-gray-500">
             <p className="inline-flex items-center gap-1">
               <FaLock className="text-gray-500" />
-              This is a simulated payment process
+              Secure payment powered by Razorpay
             </p>
             <p>Your session will be active for 10 days</p>
           </div>
