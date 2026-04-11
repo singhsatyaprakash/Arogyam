@@ -91,6 +91,8 @@ const registerDoctor = async (req, res) => {
     await doctor.save();
 
     const token = jwt.sign({id: doctor._id, email: doctor.email, role: 'doctor' }, process.env.JWT_SECRET || 'your_jwt_secret_key_here' ,{ expiresIn: '7d' });
+      doctor.token = token;
+      await doctor.save();
     delete doctor.password;
     res.status(201).json({success: true,message: 'Doctor registered successfully',data:{doctor,token}});
 
@@ -128,6 +130,7 @@ const loginDoctor = async (req, res) => {
     const token = jwt.sign({id: doctor._id, email: doctor.email, role: 'doctor'},process.env.JWT_SECRET || 'your_jwt_secret_key_here',{ expiresIn: '7d' });
 
     doctor.lastLogin = Date.now();
+    doctor.token = token;
     await doctor.save();
     delete doctor.password;
 
@@ -136,6 +139,34 @@ const loginDoctor = async (req, res) => {
   } catch (error) {
     console.error('Doctor login error:', error);
     res.status(500).json({success: false,message: 'Internal server error'});
+  }
+};
+
+const validateDoctorToken = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.user.id).select('-password -__v -token');
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Token is valid',
+      data: { doctor }
+    });
+  } catch (error) {
+    console.error('Validate doctor token error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const logoutDoctor = async (req, res) => {
+  try {
+    await Doctor.findByIdAndUpdate(req.user.id, { $set: { token: null } });
+    return res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Doctor logout error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -535,5 +566,7 @@ module.exports = {
   getAvailableDoctors,
   getDoctorByIdPublic,
   getDoctorSlots,
-  createDoctorSlots
+  createDoctorSlots,
+  validateDoctorToken,
+  logoutDoctor
 };

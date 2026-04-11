@@ -30,6 +30,8 @@ const registerPatient = async (req, res) => {
     await patient.save();
 
     const token = jwt.sign({ id: patient._id, email: patient.email, role: 'patient' }, process.env.JWT_SECRET || 'your_jwt_secret_key_here', { expiresIn: '7d' });
+    patient.token = token;
+    await patient.save();
 
     // Use getPublicProfile() if available (keeps parity with doctorController), fallback to manual sanitize
     delete patient.password;
@@ -148,10 +150,41 @@ const getConnectionsList = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
+
+const validatePatientToken = async (req, res) => {
+  try {
+    const patient = await Patient.findById(req.user.id).select('-password -__v -token');
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Token is valid',
+      data: { patient }
+    });
+  } catch (error) {
+    console.error('Validate patient token error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const logoutPatient = async (req, res) => {
+  try {
+    await Patient.findByIdAndUpdate(req.user.id, { $set: { token: null } });
+    return res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Patient logout error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   registerPatient,
   loginPatient,
   // getPatientProfile,
   // logoutPatient,
-  getConnectionsList
+  getConnectionsList,
+  validatePatientToken,
+  logoutPatient
 };

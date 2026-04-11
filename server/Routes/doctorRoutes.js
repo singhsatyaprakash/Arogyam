@@ -14,6 +14,8 @@ router.get('/available', doctorController.getAvailableDoctors);
 // Protected routes (require authentication)
 router.get('/profile', doctorMiddleware.authenticateDoctor, doctorController.getDoctorProfile);
 router.put('/profile', doctorMiddleware.authenticateDoctor, doctorController.updateDoctorProfile);
+router.get('/validate', doctorMiddleware.authenticateDoctor, doctorController.validateDoctorToken);
+router.post('/logout', doctorMiddleware.authenticateDoctor, doctorController.logoutDoctor);
 
 // Slot management (doctor-auth)
 router.post('/slots', doctorMiddleware.authenticateDoctor, doctorController.createDoctorSlots);

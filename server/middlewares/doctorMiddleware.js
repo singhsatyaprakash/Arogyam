@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const Doctor = require('../Models/doctor.model');
 
 // Simple pass-through login limiter placeholder
 const doctorLoginLimiter = (req, res, next) => {
@@ -7,7 +8,7 @@ const doctorLoginLimiter = (req, res, next) => {
 };
 
 // Authenticate doctor via JWT bearer token
-const authenticateDoctor = (req, res, next) => {
+const authenticateDoctor = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -20,6 +21,16 @@ const authenticateDoctor = (req, res, next) => {
     if (!doctorId || decoded.role !== 'doctor') {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
+
+    const doctor = await Doctor.findById(doctorId).select('token isBlocked email');
+    if (!doctor || doctor.isBlocked) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!doctor.token || doctor.token !== token) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please login again.' });
+    }
+
     req.user = { id: doctorId, email: decoded.email, role: decoded.role };
     next();
   } catch (err) {

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const Patient = require('../Models/patient.model');
 
 // Placeholder rate limiter for patient login
 const patientLoginLimiter = (req, res, next) => {
@@ -6,7 +7,7 @@ const patientLoginLimiter = (req, res, next) => {
   next();
 };
 
-const authenticatePatient = (req, res, next) => {
+const authenticatePatient = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -18,6 +19,16 @@ const authenticatePatient = (req, res, next) => {
     if (!patientId || decoded.role !== 'patient') {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
+
+    const patient = await Patient.findById(patientId).select('token isBlocked email');
+    if (!patient || patient.isBlocked) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!patient.token || patient.token !== token) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please login again.' });
+    }
+
     req.user = { id: patientId, email: decoded.email, role: decoded.role };
     next();
   } catch (err) {
