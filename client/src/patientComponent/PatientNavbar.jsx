@@ -17,6 +17,7 @@ import {
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { PatientContext } from "../contexts/PatientContext";
 import noProfileImage from "../assets/noProfile.webp";
+import axios from "axios";
 
 const PatientNavbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -80,10 +81,24 @@ const PatientNavbar = () => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/patients/logout`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (error) {
+        // Ignore logout API errors and always clear local auth state.
+      }
+    }
+
     setPatient(null);
     localStorage.removeItem("token");
-    navigate("/login");
+    localStorage.removeItem("role");
+    navigate("/");
   };
 
   return (

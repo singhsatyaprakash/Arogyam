@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/homeBackground.webp";
 import { FaHeartbeat, FaUserInjured, FaUserMd, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaSignInAlt, FaUserPlus} from "react-icons/fa";
 import Navbar from "../component/Navbar";
@@ -10,7 +10,11 @@ import { PatientContext } from "../contexts/PatientContext";
 
 const Home = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState("patient");
+  const location = useLocation();
+  const [role, setRole] = useState(() => {
+    const storedRole = localStorage.getItem("role");
+    return storedRole === "doctor" ? "doctor" : "patient";
+  });
   const [showPassword, setShowPassword] = useState(false);
   const { setDoctor } = useContext(DoctorContext);
   const { setPatient } = useContext(PatientContext);
@@ -30,9 +34,69 @@ const Home = () => {
       : "focus-within:ring-rose-200 focus-within:border-rose-500";
 
   useEffect(() => {
-    localStorage.setItem("role", role);
     window.dispatchEvent(new CustomEvent("roleChange", { detail: role }));
   }, [role]);
+
+  useEffect(() => {
+    const message = location.state?.authMessage;
+    if (message) {
+      alert(message);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const clearAuth = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("doctorToken");
+      localStorage.removeItem("role");
+      if (!isMounted) return;
+      setDoctor(null);
+      setPatient(null);
+    };
+
+    const validateExistingSession = async () => {
+      const token = localStorage.getItem("token") || localStorage.getItem("doctorToken");
+      const storedRole = localStorage.getItem("role");
+
+      if (!token || (storedRole !== "patient" && storedRole !== "doctor")) {
+        return;
+      }
+
+      try {
+        const endpoint = storedRole === "patient" ? "patients/validate" : "doctors/validate";
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/${endpoint}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!isMounted || !response?.data?.success) {
+          return;
+        }
+
+        if (storedRole === "patient") {
+          setPatient({ patient: response.data?.data?.patient, token });
+          navigate("/patient/dashboard", { replace: true });
+          return;
+        }
+
+        setDoctor({ doctor: response.data?.data?.doctor, token });
+        navigate("/doctor/dashboard", { replace: true });
+      } catch {
+        clearAuth();
+        if (isMounted) {
+          alert("Session expired. Please login again.");
+        }
+      }
+    };
+
+    validateExistingSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate, setDoctor, setPatient]);
 
   const togglePasswordVisibility = () => setShowPassword((p) => !p);
 

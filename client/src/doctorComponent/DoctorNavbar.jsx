@@ -1,19 +1,37 @@
 import { FaUserMd, FaCalendarAlt, FaComments, FaUsers, FaVideo, FaSignOutAlt, FaChevronDown, FaBars, FaTimes, FaMicrophone, FaHome, FaFileMedical, FaLightbulb, FaPills, FaCheckCircle } from "react-icons/fa";
 import { MdOutlineSettings } from "react-icons/md";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
 import noProfileImage from "../assets/noProfile.webp";
 import { DoctorContext } from "../contexts/DoctorContext";
+import axios from "axios";
 
 const DoctorNavbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { doctor, setDoctor } = useContext(DoctorContext);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('doctorToken');
+    if (token) {
+      try {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/doctors/logout`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (error) {
+        // Ignore logout API errors and always clear local auth state.
+      }
+    }
+
     setDoctor(null);
+    localStorage.removeItem('token');
     localStorage.removeItem('doctorToken');
+    localStorage.removeItem('role');
+    navigate('/');
   };
 
   const displayName = doctor?.doctor?.name || 'N/A';
