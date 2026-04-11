@@ -40,6 +40,11 @@ import Settings from "./pages/Doctor/Settings";
 import DailyRoutinePatient from "./pages/Patient/DailyRoutinePatient.jsx";
 import OTPVerification from "./component/OTPVerification";
 import ForgotPassword from "./component/ForgotPassword";
+import AdminLogin from "./pages/Admin/AdminLogin";
+import AdminForgotPassword from "./pages/Admin/AdminForgotPassword";
+import { AdminDashboard } from "./pages/Admin/AdminDashboard";
+import AddNewAdmin from "./pages/Admin/AddNewAdmin";
+import AdminProtectedWrapper from "./ProtectWrapper/AdminProtectedWrapper";
 
 // import VerifyEmailPage from "./component/VerifyEmailPage";
 
@@ -54,6 +59,12 @@ const App = () => {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsAndCondition />} />
         <Route path="/careers" element={<Careers />} />
+
+        {/* admin routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+        <Route path="/admin/dashboard" element={<AdminProtectedWrapper><AdminDashboard /></AdminProtectedWrapper>} />
+        <Route path="/admin/add" element={<AdminProtectedWrapper><AddNewAdmin /></AdminProtectedWrapper>} />
 
         {/* patient routes */}
         <Route path="/register/patient" element={<PatientRegister />} />

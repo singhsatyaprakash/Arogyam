@@ -46,6 +46,19 @@ const Home = () => {
   }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
+    const handleKey = (e) => {
+      if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        const targetPath = location.pathname.startsWith("/admin") ? "/" : "/admin/login";
+        navigate(targetPath);
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [navigate, location.pathname]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const clearAuth = () => {
