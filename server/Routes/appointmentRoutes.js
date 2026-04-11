@@ -10,6 +10,8 @@ router.get('/availability',appointmentController.getAvailability);
 
 //add a middleware for payement verfication..
 router.post('/confirm-payment',appointmentController.confirmPayment);
+router.post('/create-razorpay-order', appointmentController.createRazorpayOrder);
+router.post('/verify-razorpay-payment', appointmentController.verifyRazorpayPayment);
 
 router.get('/patient/:patientId',appointmentMiddleware.validatePatientAppointmentsParams,appointmentController.getPatientAppointments);
 

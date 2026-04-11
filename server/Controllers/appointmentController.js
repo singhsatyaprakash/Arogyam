@@ -2,8 +2,14 @@ const Doctor = require("../Models/doctor.model");
 const Patient=require("../Models/patient.model");
 const Appointment = require("../Models/appointment.model");
 const ChatConnection = require("../Models/chatConnection.model"); // NEW
+const PaymentTransaction = require("../Models/paymentTransaction.model");
 const DoctorDaySchedule = require("../Models/bookingHistoryDoctorModel");
 const mongoose = require("mongoose");
+const {
+  getRazorpayConfig,
+  getRazorpayInstance,
+  verifyRazorpaySignature,
+} = require("../Services/razorpayService");
 // NEW helpers (keep local to this file)
 const isYYYYMMDD = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
 const isHHMM = (s) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(s || ""));
@@ -37,6 +43,16 @@ const getNowUTCSlotParts = () => {
     date: `${y}-${m}-${d}`,
     time: `${hh}:${mm}`,
   };
+};
+
+const getDoctorFeeByType = (doctor, type) => {
+  const feeMap = {
+    voice: doctor?.consultationFee?.voice || 0,
+    video: doctor?.consultationFee?.video || 0,
+    "in-person": (doctor?.consultationFee?.video || 0) + 100,
+    chat: doctor?.consultationFee?.chat || 0,
+  };
+  return Number(feeMap[String(type)] ?? 0);
 };
 
 
@@ -362,74 +378,119 @@ const ensureDaySchedule = async ({ doctorId, date, doctorDoc }) => {
   history = await DoctorDaySchedule.findOne({ doctor: doctorId, date: String(date) });
   return history;
 };
+
+const createAppointmentBooking = async ({ patientId, doctorId, date, type, time }) => {
+  if (String(type) === "chat") {
+    return { ok: false, code: 400, message: "Use chat booking flow for chat type" };
+  }
+
+  if (!isYYYYMMDD(date) || !isHHMM(time)) {
+    return { ok: false, code: 400, message: "Invalid date/time" };
+  }
+
+  const doctor = await Doctor.findById(doctorId).lean();
+  if (!doctor) return { ok: false, code: 404, message: "Doctor not found" };
+
+  const fee = getDoctorFeeByType(doctor, type);
+  const duration = Number(doctor?.slotDurationMinutes) || 15;
+
+  await ensureDaySchedule({ doctorId, date, doctorDoc: doctor });
+
+  const apptId = new mongoose.Types.ObjectId();
+  const reserve = await DoctorDaySchedule.updateOne(
+    {
+      doctor: doctorId,
+      date: String(date),
+      bookedSlots: { $not: { $elemMatch: { time: String(time) } } },
+    },
+    {
+      $push: {
+        bookedSlots: {
+          time: String(time),
+          type: String(type),
+          fee,
+          patient: patientId,
+          bookingRef: apptId,
+        },
+      },
+    }
+  );
+
+  if (!reserve?.modifiedCount) {
+    return { ok: false, code: 409, message: "Slot already booked" };
+  }
+
+  const appointment = await Appointment.create({
+    _id: apptId,
+    patient: patientId,
+    doctor: doctorId,
+    type: String(type),
+    date: String(date),
+    startTime: String(time),
+    endTime: addMinutesHHMM(String(time), duration),
+    fee,
+    status: "booked",
+    paymentStatus: "paid",
+    slotId: null,
+  });
+
+  return {
+    ok: true,
+    appointment,
+    doctor,
+    fee,
+  };
+};
+
+const createChatBooking = async ({ patientId, doctorId }) => {
+  const doctor = await Doctor.findById(doctorId).lean();
+  if (!doctor) return { ok: false, code: 404, message: "Doctor not found" };
+
+  const fee = getDoctorFeeByType(doctor, "chat");
+
+  const existingChat = await ChatConnection.findOne({
+    patient: patientId,
+    doctor: doctorId,
+    status: "active",
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (existingChat) {
+    return { ok: false, code: 409, message: "Active chat already exists with this doctor" };
+  }
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 10);
+
+  const chatConnection = await ChatConnection.create({
+    patient: patientId,
+    doctor: doctorId,
+    fee,
+    status: "active",
+    paymentStatus: "paid",
+    startedAt: new Date(),
+    expiresAt,
+    messageCount: 0,
+    lastActivityAt: new Date(),
+  });
+
+  return {
+    ok: true,
+    chatConnection,
+    doctor,
+    fee,
+  };
+};
+
 exports.confirmPayment = async (req, res) => {
   try {
     const { patientId, doctorId, date, type, time } = req.body;
-
-    // if (!mongoose.Types.ObjectId.isValid(String(patientId)) || !mongoose.Types.ObjectId.isValid(String(doctorId))) {
-    //   return res.status(400).json({ success: false, message: "Invalid patientId/doctorId" });
-    // }
-
-    if (type === "chat") {
-      return res.status(400).json({ success: false, message: "Use /confirm-payment-chat endpoint for chat bookings" });
+    const booked = await createAppointmentBooking({ patientId, doctorId, date, type, time });
+    if (!booked.ok) {
+      return res.status(booked.code).json({ success: false, message: booked.message });
     }
 
-    if (!isYYYYMMDD(date) || !isHHMM(time)) {
-      return res.status(400).json({ success: false, message: "Invalid date/time" });
-    }
-
-    const doctor = await Doctor.findById(doctorId).lean();
-    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
-
-    const feeMap = {
-      voice: doctor?.consultationFee?.voice || 0,
-      video: doctor?.consultationFee?.video || 0,
-      "in-person": (doctor?.consultationFee?.video || 0) + 100,
-    };
-    const fee = Number(feeMap[String(type)] ?? 0);
-    const duration = Number(doctor?.slotDurationMinutes) || 15;
-
-    await ensureDaySchedule({ doctorId, date, doctorDoc: doctor });
-
-    const apptId = new mongoose.Types.ObjectId();
-    const reserve = await DoctorDaySchedule.updateOne(
-      {
-        doctor: doctorId,
-        date: String(date),
-        bookedSlots: { $not: { $elemMatch: { time: String(time) } } },
-      },
-      {
-        $push: {
-          bookedSlots: {
-            time: String(time),
-            type: String(type),
-            fee,
-            patient: patientId,
-            bookingRef: apptId,
-          },
-        },
-      }
-    );
-
-    if (!reserve?.modifiedCount) {
-      return res.status(409).json({ success: false, message: "Slot already booked" });
-    }
-
-    const appointment = await Appointment.create({
-      _id: apptId,
-      patient: patientId,
-      doctor: doctorId,
-      type: String(type),
-      date: String(date),
-      startTime: String(time),
-      endTime: addMinutesHHMM(String(time), duration),
-      fee,
-      status: "booked",
-      paymentStatus: "paid",
-      slotId: null,
-    });
-
-    return res.json({ success: true, data: appointment.getPublicDetails() });
+    return res.json({ success: true, data: booked.appointment.getPublicDetails() });
   } catch (err) {
     console.error("confirmPayment error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -449,47 +510,180 @@ exports.confirmPaymentChat = async (req, res) => {
       return res.status(400).json({ success: false, message: "type must be 'chat'" });
     }
 
-    const doctor = await Doctor.findById(doctorId).lean();
-    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
-
-    const fee = doctor?.consultationFee?.chat || 0;
-
-    // Check if active chat already exists
-    const existingChat = await ChatConnection.findOne({
-      patient: patientId,
-      doctor: doctorId,
-      status: "active",
-      expiresAt: { $gt: new Date() }
-    });
-
-    if (existingChat) {
-      return res.status(409).json({ success: false, message: "Active chat already exists with this doctor" });
+    const booked = await createChatBooking({ patientId, doctorId });
+    if (!booked.ok) {
+      return res.status(booked.code).json({ success: false, message: booked.message });
     }
-
-    // Calculate expiry: 10 days from now
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 10);
-
-    const chatConnection = await ChatConnection.create({
-      patient: patientId,
-      doctor: doctorId,
-      fee,
-      status: "active",
-      paymentStatus: "paid",
-      startedAt: new Date(),
-      expiresAt,
-      messageCount: 0,
-      lastActivityAt: new Date()
-    });
 
     return res.json({
       success: true,
       message: "Chat connection created",
-      data: chatConnection.getPublicDetails()
+      data: booked.chatConnection.getPublicDetails()
     });
   } catch (err) {
     console.error("confirmPaymentChat error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.createRazorpayOrder = async (req, res) => {
+  try {
+    const { patientId, doctorId, date, type, time, bookingType } = req.body || {};
+
+    if (!mongoose.Types.ObjectId.isValid(String(patientId)) || !mongoose.Types.ObjectId.isValid(String(doctorId))) {
+      return res.status(400).json({ success: false, message: "Invalid patientId/doctorId" });
+    }
+
+    const normalizedBookingType = bookingType === "chat" || type === "chat" ? "chat" : "appointment";
+    const normalizedType = normalizedBookingType === "chat" ? "chat" : String(type || "video");
+
+    if (normalizedBookingType === "appointment" && (!isYYYYMMDD(date) || !isHHMM(time))) {
+      return res.status(400).json({ success: false, message: "Invalid date/time" });
+    }
+
+    const doctor = await Doctor.findById(doctorId).lean();
+    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found" });
+
+    const fee = getDoctorFeeByType(doctor, normalizedType);
+    const amount = Math.round(Number(fee || 0) * 100);
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid fee for payment" });
+    }
+
+    const razorpay = getRazorpayInstance();
+    const order = await razorpay.orders.create({
+      amount,
+      currency: "INR",
+      receipt: `rcpt_${Date.now()}`,
+      notes: {
+        bookingType: normalizedBookingType,
+        patientId: String(patientId),
+        doctorId: String(doctorId),
+      },
+    });
+
+    await PaymentTransaction.create({
+      bookingType: normalizedBookingType,
+      patient: patientId,
+      doctor: doctorId,
+      amount: Number(fee || 0),
+      currency: "INR",
+      status: "created",
+      razorpayOrderId: order.id,
+      metadata:
+        normalizedBookingType === "chat"
+          ? { type: "chat" }
+          : {
+              date: String(date),
+              type: normalizedType,
+              time: String(time),
+            },
+    });
+
+    const { keyId } = getRazorpayConfig();
+
+    return res.json({
+      success: true,
+      data: {
+        keyId,
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        bookingType: normalizedBookingType,
+      },
+    });
+  } catch (err) {
+    console.error("createRazorpayOrder error:", err);
+    return res.status(500).json({ success: false, message: "Unable to create payment order" });
+  }
+};
+
+exports.verifyRazorpayPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Payment verification fields are required" });
+    }
+
+    const tx = await PaymentTransaction.findOne({ razorpayOrderId: String(razorpay_order_id) });
+    if (!tx) {
+      return res.status(404).json({ success: false, message: "Payment transaction not found" });
+    }
+
+    if (tx.status === "paid") {
+      return res.json({
+        success: true,
+        message: "Payment already verified",
+        data: {
+          bookingType: tx.bookingType,
+          appointmentId: tx.appointment,
+          chatConnectionId: tx.chatConnection,
+        },
+      });
+    }
+
+    const isValid = verifyRazorpaySignature({
+      orderId: String(razorpay_order_id),
+      paymentId: String(razorpay_payment_id),
+      signature: String(razorpay_signature),
+    });
+
+    if (!isValid) {
+      tx.status = "failed";
+      tx.razorpayPaymentId = String(razorpay_payment_id);
+      tx.razorpaySignature = String(razorpay_signature);
+      await tx.save();
+      return res.status(400).json({ success: false, message: "Invalid payment signature" });
+    }
+
+    let result;
+    if (tx.bookingType === "chat") {
+      result = await createChatBooking({
+        patientId: tx.patient,
+        doctorId: tx.doctor,
+      });
+    } else {
+      const meta = tx.metadata || {};
+      result = await createAppointmentBooking({
+        patientId: tx.patient,
+        doctorId: tx.doctor,
+        date: String(meta.date || ""),
+        type: String(meta.type || "video"),
+        time: String(meta.time || ""),
+      });
+    }
+
+    if (!result?.ok) {
+      tx.status = "failed";
+      tx.razorpayPaymentId = String(razorpay_payment_id);
+      tx.razorpaySignature = String(razorpay_signature);
+      await tx.save();
+      return res.status(result?.code || 400).json({ success: false, message: result?.message || "Booking failed after payment" });
+    }
+
+    tx.status = "paid";
+    tx.razorpayPaymentId = String(razorpay_payment_id);
+    tx.razorpaySignature = String(razorpay_signature);
+    if (tx.bookingType === "chat") {
+      tx.chatConnection = result.chatConnection._id;
+    } else {
+      tx.appointment = result.appointment._id;
+    }
+    await tx.save();
+
+    return res.json({
+      success: true,
+      message: "Payment verified and booking created",
+      data: {
+        bookingType: tx.bookingType,
+        appointment: result.appointment ? result.appointment.getPublicDetails() : null,
+        chatConnection: result.chatConnection ? result.chatConnection.getPublicDetails() : null,
+      },
+    });
+  } catch (err) {
+    console.error("verifyRazorpayPayment error:", err);
+    return res.status(500).json({ success: false, message: "Unable to verify payment" });
   }
 };
 
