@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { FaUserMd, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
-const Footer = () => {
+const Footer = ({ role: roleProp }) => {
   const [role, setRole] = useState(() => localStorage.getItem('role') || 'patient');
+
+  const effectiveRole = roleProp === 'doctor' || roleProp === 'patient' ? roleProp : role;
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -20,7 +22,7 @@ const Footer = () => {
     };
   }, []);
 
-  const isPatient = role === "patient";
+  const isPatient = effectiveRole === "patient";
   const topBgClass = isPatient
     ? "bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900"
     : "bg-gradient-to-br from-rose-950 via-rose-900 to-red-900";

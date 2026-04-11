@@ -233,9 +233,20 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="text-right text-xs text-gray-500 hover:underline cursor-pointer">
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/forgot-password', {
+                  state: {
+                    role,
+                    email: formData.email?.trim() || ''
+                  }
+                })
+              }
+              className="text-right w-full text-xs text-gray-500 hover:underline cursor-pointer"
+            >
               Forgot Password?
-            </div>
+            </button>
 
             <button
               type="submit"

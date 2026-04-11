@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUserMd, FaBars, FaTimes } from "react-icons/fa";
 
-const Navbar = () => {
+const Navbar = ({ role: roleProp }) => {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState(() => localStorage.getItem('role') || 'patient');
   const navigate = useNavigate();
+
+  const effectiveRole = roleProp === 'doctor' || roleProp === 'patient' ? roleProp : role;
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -22,14 +24,14 @@ const Navbar = () => {
     };
   }, []);
 
-  const primaryBtnClass = role === 'patient'
+  const primaryBtnClass = effectiveRole === 'patient'
     ? 'bg-emerald-600 hover:bg-emerald-700'
     : 'bg-rose-600 hover:bg-rose-700';
-  const logoColorClass = role === 'patient' ? 'text-green-500' : 'text-red-500';
-  const brandAccentClass = role === 'patient' ? 'text-emerald-600' : 'text-rose-600';
-  const softAccentBg = role === 'patient' ? 'from-emerald-50 to-cyan-50' : 'from-rose-50 to-orange-50';
-  const linkHoverClass = role === 'patient' ? 'hover:text-emerald-700' : 'hover:text-rose-700';
-  const mobileBorderClass = role === 'patient' ? 'border-emerald-100' : 'border-rose-100';
+  const logoColorClass = effectiveRole === 'patient' ? 'text-green-500' : 'text-red-500';
+  const brandAccentClass = effectiveRole === 'patient' ? 'text-emerald-600' : 'text-rose-600';
+  const softAccentBg = effectiveRole === 'patient' ? 'from-emerald-50 to-cyan-50' : 'from-rose-50 to-orange-50';
+  const linkHoverClass = effectiveRole === 'patient' ? 'hover:text-emerald-700' : 'hover:text-rose-700';
+  const mobileBorderClass = effectiveRole === 'patient' ? 'border-emerald-100' : 'border-rose-100';
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
