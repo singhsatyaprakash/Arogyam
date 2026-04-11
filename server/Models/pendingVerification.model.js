@@ -11,7 +11,7 @@ const pendingVerificationSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['patient', 'doctor'],
+      enum: ['patient', 'doctor', 'admin'],
       required: true,
       index: true
     },

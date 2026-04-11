@@ -44,6 +44,7 @@ const patientRoutes = require('./Routes/patientRoutes');
 const appointmentRoutes = require('./Routes/appointmentRoutes');
 const chatRoutes = require('./Routes/chatRoutes');
 const videoRoutes = require('./Routes/videoRoutes');
+const adminRoutes = require('./Routes/adminRoutes');
 
 app.get('/',(req,res)=>{
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -53,6 +54,7 @@ app.use('/doctors', doctorRoutes);
 app.use('/appointments', appointmentRoutes);
 app.use('/chats', chatRoutes);
 app.use('/videos', videoRoutes);
+app.use('/admins', adminRoutes);
 
 // initialize socket
 initSocket(server);
