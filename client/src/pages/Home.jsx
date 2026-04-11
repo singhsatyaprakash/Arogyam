@@ -61,6 +61,14 @@ const Home = () => {
   useEffect(() => {
     let isMounted = true;
 
+    const isUsableToken = (value) => {
+      if (!value || typeof value !== "string") return false;
+      const token = value.trim();
+      if (!token || token === "undefined" || token === "null") return false;
+      // Basic JWT shape check to avoid noisy validate calls with corrupted values.
+      return token.split(".").length === 3;
+    };
+
     const clearAuth = () => {
       localStorage.removeItem("token");
       localStorage.removeItem("doctorToken");
@@ -74,7 +82,12 @@ const Home = () => {
       const token = localStorage.getItem("token") || localStorage.getItem("doctorToken");
       const storedRole = localStorage.getItem("role");
 
-      if (!token || (storedRole !== "patient" && storedRole !== "doctor")) {
+      if (storedRole !== "patient" && storedRole !== "doctor") {
+        return;
+      }
+
+      if (!isUsableToken(token)) {
+        clearAuth();
         return;
       }
 
@@ -98,9 +111,6 @@ const Home = () => {
         navigate("/doctor/dashboard", { replace: true });
       } catch {
         clearAuth();
-        if (isMounted) {
-          alert("Session expired. Please login again.");
-        }
       }
     };
 
