@@ -54,7 +54,7 @@ const Home = () => {
       }
     };
 
-    window.addEventListener("keydown", handleKey);
+    window.addEventListener("keydown", handleKey);  
     return () => window.removeEventListener("keydown", handleKey);
   }, [navigate, location.pathname]);
 

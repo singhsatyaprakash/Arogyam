@@ -413,41 +413,80 @@ const sendDoctorForgotPasswordOtp = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No doctor account found with this email' });
     }
 
-    const existingPending = await PendingVerification.findOne({
+    const now = new Date();
+    const baseFilter = {
       email,
       role: 'doctor',
       purpose: PASSWORD_RESET_OTP_PURPOSE
-    });
-    if (existingPending && new Date(existingPending.resendAvailableAt) > new Date()) {
-      const waitSeconds = Math.ceil((new Date(existingPending.resendAvailableAt).getTime() - Date.now()) / 1000);
-      return res.status(429).json({
-        success: false,
-        message: `Please wait ${waitSeconds}s before requesting another OTP`
-      });
-    }
-
+    };
     const otp = generateOtp();
-    await PendingVerification.findOneAndUpdate(
-      { email, role: 'doctor', purpose: PASSWORD_RESET_OTP_PURPOSE },
-      {
-        $set: {
-          otpHash: hashOtp(otp),
-          otpExpiresAt: getOtpExpiryDate(),
-          resendAvailableAt: getResendAvailableDate(),
-          failedAttempts: 0,
-          payload: {}
-        }
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+    const otpHashValue = hashOtp(otp);
+    const otpUpdate = {
+      $set: {
+        otpHash: otpHashValue,
+        otpExpiresAt: getOtpExpiryDate(),
+        resendAvailableAt: getResendAvailableDate(),
+        failedAttempts: 0,
+        payload: {}
+      }
+    };
+
+    let pending = await PendingVerification.findOneAndUpdate(
+      { ...baseFilter, resendAvailableAt: { $lte: now } },
+      otpUpdate,
+      { new: true }
     );
 
-    await sendOtpEmail({
-      to: email,
-      name: doctor.name,
-      role: 'doctor',
-      otp,
-      purpose: PASSWORD_RESET_OTP_PURPOSE
-    });
+    if (!pending) {
+      const existingPending = await PendingVerification.findOne(baseFilter);
+      if (existingPending && new Date(existingPending.resendAvailableAt) > now) {
+        const waitSeconds = Math.ceil((new Date(existingPending.resendAvailableAt).getTime() - Date.now()) / 1000);
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${waitSeconds}s before requesting another OTP`
+        });
+      }
+
+      try {
+        pending = await PendingVerification.findOneAndUpdate(baseFilter, otpUpdate, {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true
+        });
+      } catch (dbError) {
+        if (dbError?.code !== 11000) throw dbError;
+
+        const retryPending = await PendingVerification.findOne(baseFilter);
+        if (retryPending && new Date(retryPending.resendAvailableAt) > now) {
+          const waitSeconds = Math.ceil((new Date(retryPending.resendAvailableAt).getTime() - Date.now()) / 1000);
+          return res.status(429).json({
+            success: false,
+            message: `Please wait ${waitSeconds}s before requesting another OTP`
+          });
+        }
+
+        pending = await PendingVerification.findOneAndUpdate(baseFilter, otpUpdate, { new: true });
+      }
+    }
+
+    try {
+      await sendOtpEmail({
+        to: email,
+        name: doctor.name,
+        role: 'doctor',
+        otp,
+        purpose: PASSWORD_RESET_OTP_PURPOSE
+      });
+    } catch (mailError) {
+      // Avoid locking retries when OTP email fails after DB update.
+      await PendingVerification.deleteOne({
+        email,
+        role: 'doctor',
+        purpose: PASSWORD_RESET_OTP_PURPOSE,
+        otpHash: otpHashValue
+      });
+      throw mailError;
+    }
 
     return res.status(200).json({
       success: true,
