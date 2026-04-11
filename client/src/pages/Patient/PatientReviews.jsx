@@ -55,7 +55,7 @@ export default function PatientReviews(){
                 onChange={(e)=>setForm({...form, rating: Number(e.target.value)})}
                 className="w-full sm:w-36 px-3 py-2.5 border border-gray-300 rounded-xl bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
               >
-                {[5,4,3,2,1].map(r => <option key={r} value={r}>{r}★</option>)}
+                {[5,4,3,2,1].map(r => <option key={r} value={r}>{r} Star</option>)}
               </select>
             </div>
 

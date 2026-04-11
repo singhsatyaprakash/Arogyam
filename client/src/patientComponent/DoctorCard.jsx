@@ -1,5 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FaStar } from 'react-icons/fa'
 
 const DoctorCard = ({ doctor }) => {
   const navigate = useNavigate();
@@ -20,7 +21,9 @@ const DoctorCard = ({ doctor }) => {
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontWeight: 'bold' }}>₹{fee}</div>
-          <div style={{ fontSize: 13 }}>{doctor.rating || '—'} ★</div>
+          <div style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {doctor.rating || '—'} <FaStar style={{ color: '#f59e0b' }} />
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock, FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPaperPlane, FaCheckCircle } from 'react-icons/fa'
+import Navbar from '../component/Navbar'
+import Footer from '../component/Footer'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -48,9 +50,9 @@ const Contact = () => {
     {
       icon: FaEnvelope,
       title: 'Email',
-      details: 'support@arogyam.com',
+      details: 'arogyamswasthya@gmail.com',
       subtext: 'We respond within 24 hours',
-      color: '#4ECDC4',
+      color: '#0EA5A4',
     },
     {
       icon: FaMapMarkerAlt,
@@ -96,9 +98,11 @@ const Contact = () => {
   ]
 
   return (
-    <div className="w-full overflow-x-hidden bg-white">
+    <>
+    <Navbar />
+    <div className="w-full overflow-x-hidden bg-gradient-to-b from-emerald-50/70 via-white to-cyan-50/50 pt-20">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <section className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-1/2 -right-10 w-96 h-96 bg-white rounded-full opacity-10 blur-3xl"></div>
           <div className="absolute -bottom-1/3 -left-5 w-80 h-80 bg-white rounded-full opacity-10 blur-3xl"></div>
@@ -110,7 +114,7 @@ const Contact = () => {
       </section>
 
       {/* Contact Info Cards */}
-      <section className="bg-white py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {contactInfo.map((info, index) => {
@@ -118,7 +122,7 @@ const Contact = () => {
               return (
                 <div
                   key={index}
-                  className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-center"
+                  className="bg-white rounded-2xl p-6 border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center"
                 >
                   <div className="text-4xl mb-4 flex justify-center" style={{ color: info.color }}>
                     <Icon />
@@ -134,11 +138,11 @@ const Contact = () => {
       </section>
 
       {/* Contact Form & Info */}
-      <section className="bg-gray-50 py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Form */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="bg-white rounded-3xl shadow-xl border border-emerald-100 p-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Send us a Message</h2>
               <p className="text-gray-600 mb-8">Fill out the form below and we'll get back to you as soon as possible.</p>
 
@@ -163,7 +167,7 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="John Doe"
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
                     />
                   </div>
                   <div>
@@ -175,7 +179,7 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="john@example.com"
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
                     />
                   </div>
                 </div>
@@ -189,7 +193,7 @@ const Contact = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="+91 9999-999-999"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
                     />
                   </div>
                   <div>
@@ -201,7 +205,7 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="How can we help?"
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
                     />
                   </div>
                 </div>
@@ -215,13 +219,13 @@ const Contact = () => {
                     placeholder="Tell us more about your inquiry..."
                     required
                     rows="5"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition resize-none"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2"
                 >
                   <FaPaperPlane />
                   Send Message
@@ -232,7 +236,7 @@ const Contact = () => {
             {/* Info Box */}
             <div className="space-y-8">
               {/* Why Choose Us */}
-              <div className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Why Choose Arogyam?</h3>
                 <ul className="space-y-4">
                   {[
@@ -252,9 +256,9 @@ const Contact = () => {
               </div>
 
               {/* Social Media */}
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl p-8">
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-3xl p-8 shadow-xl">
                 <h3 className="text-2xl font-bold mb-6">Follow Us</h3>
-                <p className="mb-6 text-indigo-100">Stay updated with the latest health tips and news</p>
+                <p className="mb-6 text-emerald-100">Stay updated with the latest health tips and news</p>
                 <div className="flex gap-4 flex-wrap">
                   {[
                     { icon: FaFacebook, label: 'Facebook' },
@@ -281,7 +285,7 @@ const Contact = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="bg-white py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
@@ -292,11 +296,11 @@ const Contact = () => {
             {faqs.map((faq, index) => (
               <details
                 key={index}
-                className="group bg-gray-50 border border-gray-200 rounded-lg p-6 hover:bg-gray-100 transition-all duration-300 cursor-pointer"
+                className="group bg-white border border-gray-200 rounded-xl p-6 hover:bg-emerald-50/40 transition-all duration-300 cursor-pointer"
               >
                 <summary className="flex items-center justify-between font-bold text-gray-900 text-lg">
                   <span>{faq.question}</span>
-                  <span className="ml-4 text-indigo-600 group-open:rotate-180 transition-transform duration-300">
+                  <span className="ml-4 text-emerald-600 group-open:rotate-180 transition-transform duration-300">
                     ▼
                   </span>
                 </summary>
@@ -308,7 +312,7 @@ const Contact = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-pink-500 to-red-500 text-white py-20 px-4 sm:px-6 lg:px-8">
+      <section className="bg-gradient-to-r from-rose-500 to-red-500 text-white py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-4">Still Have Questions?</h2>
           <p className="text-xl mb-8 opacity-95">Our support team is available 24/7 to assist you</p>
@@ -323,6 +327,8 @@ const Contact = () => {
         </div>
       </section>
     </div>
+    <Footer />
+    </>
   )
 }
 

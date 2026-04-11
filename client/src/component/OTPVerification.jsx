@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaUser, FaUserMd } from 'react-icons/fa';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
@@ -141,7 +142,10 @@ const OTPVerification = () => {
                 {email || 'Email not found. Please go back and register again.'}
               </p>
               <p className={`text-sm font-medium mt-2 ${textColorClass}`}>
-                {isDoctorRole ? '👨‍⚕️ Registering as Doctor' : '👤 Registering as Patient'}
+                <span className="inline-flex items-center gap-2">
+                  {isDoctorRole ? <FaUserMd /> : <FaUser />}
+                  {isDoctorRole ? 'Registering as Doctor' : 'Registering as Patient'}
+                </span>
               </p>
             </div>
 
@@ -149,7 +153,7 @@ const OTPVerification = () => {
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-sm text-red-800 flex items-start gap-2">
-                  <span className="text-lg">⚠️</span>
+                  <FaExclamationTriangle className="mt-0.5 text-base" />
                   {error}
                 </p>
               </div>
@@ -159,7 +163,7 @@ const OTPVerification = () => {
             {successMsg && (
               <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
                 <p className="text-sm text-green-800 flex items-start gap-2">
-                  <span className="text-lg">✅</span>
+                  <FaCheckCircle className="mt-0.5 text-base" />
                   {successMsg}
                 </p>
               </div>
@@ -192,7 +196,7 @@ const OTPVerification = () => {
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span>
+                    <FaSpinner className="animate-spin" />
                     Verifying...
                   </span>
                 ) : (
@@ -209,7 +213,7 @@ const OTPVerification = () => {
               >
                 {resending ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span>
+                    <FaSpinner className="animate-spin" />
                     Sending...
                   </span>
                 ) : secondsLeft > 0 ? (

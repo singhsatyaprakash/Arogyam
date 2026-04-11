@@ -266,7 +266,7 @@ const DoctorBookingProcess = () => {
     };
   }, [doctor?._id, doctorId, selectedDate, mode]);
 
-  // ✅ Proceed for voice/video/in-person slot booking
+  // Proceed for voice/video/in-person slot booking
   const handleProceed = () => {
     if (!selectedSlot) return;
 
@@ -462,7 +462,7 @@ const DoctorBookingProcess = () => {
               ))}
             </div>
 
-            {/* ✅ If CHAT -> render ChatBookingOnly, else slots UI */}
+            {/* If CHAT -> render ChatBookingOnly, else slots UI */}
             {mode === "chat" ? (
               <ChatBookingOnly
                 doctor={doctor}

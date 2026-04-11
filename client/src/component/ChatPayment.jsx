@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PatientContext } from "../contexts/PatientContext";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import { FaLock } from "react-icons/fa";
 import axios from "axios";
 
 const ChatPayment = () => {
@@ -176,7 +177,10 @@ const ChatPayment = () => {
         {/* Note */}
         {processing && (
           <div className="text-center text-xs text-gray-500">
-            <p>🔒 This is a simulated payment process</p>
+            <p className="inline-flex items-center gap-1">
+              <FaLock className="text-gray-500" />
+              This is a simulated payment process
+            </p>
             <p>Your session will be active for 10 days</p>
           </div>
         )}

@@ -2,7 +2,7 @@ import { useSocket } from "../contexts/SocketContext";
 import { useContext, useEffect, useState, useRef } from "react";
 import { PatientContext } from "../contexts/PatientContext";
 import { IoMdClose } from "react-icons/io";
-import { FaPaperPlane, FaCircle } from "react-icons/fa";
+import { FaComments, FaPaperPlane, FaCircle } from "react-icons/fa";
 import noProfileImage from "../assets/noProfile.webp";
 import axios from "axios";
 
@@ -96,7 +96,7 @@ const PatientChatWindow = ({ selectedDoctor, onClose }) => {
       <div className="flex-1 flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-emerald-50/60">
         <div className="text-center px-6">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-4">
-            💬
+            <FaComments />
           </div>
           <p className="text-2xl font-semibold text-gray-700">No Conversation Selected</p>
           <p className="text-gray-500 mt-2">Choose a doctor from the left to start your chat.</p>

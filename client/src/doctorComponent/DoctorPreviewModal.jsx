@@ -1,3 +1,5 @@
+import { FaCheckCircle } from "react-icons/fa";
+
 const DoctorPreviewModal = ({ data, onClose }) => {
   const nameWithTitle = `${data.title} ${data.name}`;
 
@@ -16,7 +18,7 @@ const DoctorPreviewModal = ({ data, onClose }) => {
         </button>
 
         <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-gray-900 flex items-center justify-center gap-2 tracking-tight">
-          <span className="text-rose-500">✓</span>
+          <FaCheckCircle className="text-rose-500" />
           Preview Your Profile
         </h2>
 

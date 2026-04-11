@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { IoMdClose } from "react-icons/io";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaComments, FaPaperPlane } from "react-icons/fa";
 import { useSocket } from "../contexts/SocketContext";
 import { DoctorContext } from "../contexts/DoctorContext";
 import noProfileImage from "../assets/noProfile.webp";
@@ -79,7 +79,7 @@ const ChatWindow = ({ selectedPatient, onClose }) => {
       <div className="flex-1 flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-rose-50/50">
         <div className="text-center px-6">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-2xl mb-4">
-            💬
+            <FaComments />
           </div>
           <p className="text-2xl font-semibold text-gray-700">
             No Conversation Selected

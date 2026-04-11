@@ -47,7 +47,7 @@ const DoctorChatList = ({ onSelectPatient, selectedConnectionId }) => {
     fetchConnections();
   }, [doctor?.doctor?._id]);
 
-  // 🔍 Search Filter with null safety
+  // Search filter with null safety
   const filteredConnections = connectionList.filter((c) =>
     c?.patient?.name?.toLowerCase().includes(search.toLowerCase())
   );
