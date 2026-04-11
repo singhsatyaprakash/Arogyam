@@ -3,7 +3,7 @@ const ChatConnection = require('../Models/chatConnection.model');
 const PendingVerification = require('../Models/pendingVerification.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { sendOtpEmail } = require('../Services/mailService');
+const { sendOtpEmail, getMailErrorResponse } = require('../Services/mailService');
 const {
   OTP_EXPIRES_MINUTES,
   RESEND_COOLDOWN_SECONDS,
@@ -110,7 +110,8 @@ const sendPatientRegistrationOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Send patient registration OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 
@@ -159,7 +160,8 @@ const resendPatientRegistrationOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Resend patient registration OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 
@@ -441,7 +443,8 @@ const sendPatientForgotPasswordOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Send patient forgot password OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 

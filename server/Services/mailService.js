@@ -1,35 +1,73 @@
 const nodemailer = require('nodemailer');
 
 let transporter;
+
+class MailServiceError extends Error {
+  constructor(message, publicMessage, statusCode = 500) {
+    super(message);
+    this.name = 'MailServiceError';
+    this.publicMessage = publicMessage || 'Email service error';
+    this.statusCode = statusCode;
+  }
+}
+
+const toCleanString = (value) => String(value || '').trim();
+
+const getMailErrorResponse = (error) => {
+  if (error instanceof MailServiceError) {
+    return {
+      status: error.statusCode || 500,
+      message: error.publicMessage || 'Email service error'
+    };
+  }
+
+  return {
+    status: 500,
+    message: 'Internal server error'
+  };
+};
 // we can use Amazon SES for email service at high demand user level...
 const getTransporter = () => {
   if (transporter) return transporter;
 
-  if (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  const smtpHost = toCleanString(process.env.SMTP_HOST);
+  const smtpPort = toCleanString(process.env.SMTP_PORT);
+  const smtpUser = toCleanString(process.env.SMTP_USER);
+  const smtpPass = toCleanString(process.env.SMTP_PASS);
+
+  if (smtpHost && smtpPort && smtpUser && smtpPass) {
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
+      host: smtpHost,
+      port: Number(smtpPort),
       secure: String(process.env.SMTP_SECURE || 'false') === 'true',
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: smtpUser,
+        pass: smtpPass
       }
     });
     return transporter;
   }
 
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  const emailUser = toCleanString(process.env.EMAIL_USER);
+  // Gmail app passwords are often copied with spaces; normalize to avoid auth failures.
+  const emailPass = toCleanString(process.env.EMAIL_PASS).replace(/\s+/g, '');
+
+  if (emailUser && emailPass) {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: emailUser,
+        pass: emailPass
       }
     });
     return transporter;
   }
 
-  throw new Error('Email service is not configured. Set SMTP_* or EMAIL_USER/EMAIL_PASS env vars.');
+  throw new MailServiceError(
+    'Email service is not configured. Set SMTP_* or EMAIL_USER/EMAIL_PASS env vars.',
+    'Email service is not configured on server. Please set SMTP or EMAIL credentials.',
+    500
+  );
 };
 
 const sendOtpEmail = async ({ to, name, role, otp, purpose = 'registration' }) => {
@@ -63,13 +101,35 @@ const sendOtpEmail = async ({ to, name, role, otp, purpose = 'registration' }) =
     </div>
   `;
 
-  await transporterInstance.sendMail({
-    from,
-    to,
-    subject: isPasswordReset ? `${appName} Password Reset OTP` : `${appName} OTP Verification`,
-    html,
-    text: `Hello ${safeName}, your OTP is ${otp}. It is valid for 10 minutes. Use it to ${actionText}.`
-  });
+  try {
+    await transporterInstance.sendMail({
+      from,
+      to,
+      subject: isPasswordReset ? `${appName} Password Reset OTP` : `${appName} OTP Verification`,
+      html,
+      text: `Hello ${safeName}, your OTP is ${otp}. It is valid for 10 minutes. Use it to ${actionText}.`
+    });
+  } catch (error) {
+    if (error?.code === 'EAUTH') {
+      throw new MailServiceError(
+        `Email authentication failed: ${error.message}`,
+        'Email authentication failed. Verify SMTP/EMAIL credentials.',
+        500
+      );
+    }
+    if (['ECONNECTION', 'ESOCKET', 'ETIMEDOUT'].includes(error?.code)) {
+      throw new MailServiceError(
+        `Email server connection error: ${error.message}`,
+        'Unable to connect to email service. Please try again later.',
+        503
+      );
+    }
+    throw new MailServiceError(
+      `Failed to send OTP email: ${error.message}`,
+      'Failed to send OTP email. Please try again.',
+      500
+    );
+  }
 };
 
 const sendAdminCredentialsEmail = async ({ to, name, adminEmail, password }) => {
@@ -96,13 +156,21 @@ const sendAdminCredentialsEmail = async ({ to, name, adminEmail, password }) => 
     </div>
   `;
 
-  await transporterInstance.sendMail({
-    from,
-    to,
-    subject: `${appName} Admin Credentials`,
-    html,
-    text: `Hello ${safeName}, your ${appName} admin account is ready. Email: ${adminEmail}, Password: ${password}. Please change password after first login.`
-  });
+  try {
+    await transporterInstance.sendMail({
+      from,
+      to,
+      subject: `${appName} Admin Credentials`,
+      html,
+      text: `Hello ${safeName}, your ${appName} admin account is ready. Email: ${adminEmail}, Password: ${password}. Please change password after first login.`
+    });
+  } catch (error) {
+    throw new MailServiceError(
+      `Failed to send admin credentials email: ${error.message}`,
+      'Failed to send admin credentials email. Check email service configuration.',
+      500
+    );
+  }
 };
 
 const sendAdminPasswordResetOtpEmail = async ({ to, name, otp }) => {
@@ -127,17 +195,26 @@ const sendAdminPasswordResetOtpEmail = async ({ to, name, otp }) => {
     </div>
   `;
 
-  await transporterInstance.sendMail({
-    from,
-    to,
-    subject: `${appName} Admin Password Reset OTP`,
-    html,
-    text: `Hello ${safeName}, your admin password reset OTP is ${otp}. It is valid for 10 minutes.`
-  });
+  try {
+    await transporterInstance.sendMail({
+      from,
+      to,
+      subject: `${appName} Admin Password Reset OTP`,
+      html,
+      text: `Hello ${safeName}, your admin password reset OTP is ${otp}. It is valid for 10 minutes.`
+    });
+  } catch (error) {
+    throw new MailServiceError(
+      `Failed to send admin password reset OTP email: ${error.message}`,
+      'Failed to send admin OTP email. Please try again later.',
+      500
+    );
+  }
 };
 
 module.exports = {
   sendOtpEmail,
   sendAdminCredentialsEmail,
-  sendAdminPasswordResetOtpEmail
+  sendAdminPasswordResetOtpEmail,
+  getMailErrorResponse
 };

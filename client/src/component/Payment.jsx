@@ -38,11 +38,13 @@ const Payment = () => {
 
   const [status, setStatus] = useState('idle'); // idle | creating-order | opening-gateway | verifying | success | error
   const [error, setError] = useState('');
+  const paymentCompletedRef = React.useRef(false);
+  const redirectTimeoutRef = React.useRef(null);
 
   const canStart = Boolean(payload?.doctorId && payload?.patientId && payload?.date && payload?.type && payload?.time);
 
   useEffect(() => {
-    if (!canStart) return;
+    if (!canStart || paymentCompletedRef.current) return;
 
     setStatus('creating-order');
     setError('');
@@ -51,6 +53,8 @@ const Payment = () => {
 
     const startPayment = async () => {
       try {
+        if (paymentCompletedRef.current) return;
+
         const scriptReady = await loadRazorpayScript();
         if (!scriptReady) {
           throw new Error('Unable to load Razorpay checkout');
@@ -86,20 +90,29 @@ const Payment = () => {
           },
           handler: async function (response) {
             try {
+              if (paymentCompletedRef.current) return;
+
               setStatus('verifying');
               const verifyRes = await axios.post(`${import.meta.env.VITE_API_URL}/appointments/verify-razorpay-payment`, response);
+              if (paymentCompletedRef.current) return;
+
               if (!verifyRes?.data?.success) {
                 throw new Error(verifyRes?.data?.message || 'Payment verification failed');
               }
+              paymentCompletedRef.current = true;
               setStatus('success');
-              setTimeout(() => navigate('/patient/booked-appointment'), 1000);
+              redirectTimeoutRef.current = window.setTimeout(() => navigate('/patient/booked-appointment', { replace: true }), 600);
             } catch (verifyError) {
+              if (paymentCompletedRef.current) return;
+
               setStatus('error');
               setError(verifyError?.response?.data?.message || verifyError?.message || 'Payment verification failed');
             }
           },
           modal: {
             ondismiss: () => {
+              if (paymentCompletedRef.current) return;
+
               setStatus('error');
               setError('Payment was cancelled. Please try again.');
             },
@@ -121,6 +134,9 @@ const Payment = () => {
 
     return () => {
       cancelled = true;
+      if (redirectTimeoutRef.current) {
+        window.clearTimeout(redirectTimeoutRef.current);
+      }
     };
   }, [canStart, navigate, payload, patient]);
 

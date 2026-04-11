@@ -1,9 +1,20 @@
 import PatientChatList from "../../patientComponent/PatientChatList";
 import PatientChatWindow from "../../patientComponent/PatientChatWindow";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ChatWithDoctor = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handlePopState = () => {
+      navigate("/patient/dashboard", { replace: true });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [navigate]);
 
   return (
     <div className="h-screen bg-gradient-to-br from-emerald-100/40 via-white to-cyan-100/40 p-0 md:p-4">
@@ -15,7 +26,7 @@ const ChatWithDoctor = () => {
         <div className={`${selectedDoctor ? "block" : "hidden md:block"} flex-1 min-w-0`}>
           <PatientChatWindow
             selectedDoctor={selectedDoctor}
-            onClose={() => setSelectedDoctor(null)}
+            onClose={() => navigate("/patient/dashboard", { replace: true })}
           />
         </div>
       </div>

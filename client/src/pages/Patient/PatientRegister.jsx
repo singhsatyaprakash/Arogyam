@@ -1,14 +1,21 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import PatientRegisterNavbar from "./PatientRegisterNavbar";
 import PatientFooter from "../../patientComponent/PatientFooter";
-import { FaUser, FaEnvelope, FaPhone, FaBirthdayCake, FaLock, FaHeartbeat } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaPhone, FaBirthdayCake, FaLock, FaHeartbeat, FaSpinner } from "react-icons/fa";
 import axios from "axios";
 import Footer from "../../component/Footer";
 
 const PatientRegister = () => {
   const location = useLocation();
   const savedFormData = location.state?.formData;
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  useEffect(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("doctorToken");
+    localStorage.removeItem("role");
+  }, []);
   
   const [form, setForm] = useState(savedFormData || {
     name: '',
@@ -21,6 +28,7 @@ const PatientRegister = () => {
     confirmPassword: ''
   });
   const [showPasswordRules, setShowPasswordRules] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const getAgeFromBirthDate = (birthDate) => {
@@ -61,7 +69,8 @@ const PatientRegister = () => {
       return;
     }
     try {
-      const response=await axios.post(`${import.meta.env.VITE_API_URL}/patients/register/send-otp`, {
+      setLoading(true);
+      const response=await axios.post(`${apiUrl}/patients/register/send-otp`, {
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -87,6 +96,8 @@ const PatientRegister = () => {
     } catch (err) {
       console.error('Register error', err);
       alert(err?.response?.data?.message || 'Registration error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -229,8 +240,26 @@ const PatientRegister = () => {
                   />
                 </div>
 
-                <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition mt-2 shadow-sm">
-                  Create Account
+                {loading && (
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                    <FaSpinner className="animate-spin" />
+                    Sending verification OTP to your email...
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition mt-2 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      <span>Sending OTP...</span>
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
                 </button>
 
                 <div className="text-center text-sm text-gray-500">

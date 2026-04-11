@@ -343,7 +343,12 @@ exports.getAvailability = async (req, res) => {
 };
 
 const ensureDaySchedule = async ({ doctorId, date, doctorDoc }) => {
-  let history = await DoctorDaySchedule.findOne({ doctor: doctorId, date: String(date) });
+  const scheduleFilter = {
+    date: String(date),
+    $or: [{ doctor: doctorId }, { doctorId: doctorId }],
+  };
+
+  let history = await DoctorDaySchedule.findOne(scheduleFilter);
   if (history) return history;
   //if no history, generate from doctor availability and insert (if concurrent request inserts, we will get that on next read and avoid double-booking)
   const duration = Number(doctorDoc?.slotDurationMinutes) || 15;
@@ -362,10 +367,11 @@ const ensureDaySchedule = async ({ doctorId, date, doctorDoc }) => {
   for (let t = startM; t + duration <= endM; t += duration) times.push(minutesToHHMM(t));
 
   await DoctorDaySchedule.updateOne(
-    { doctor: doctorId, date: String(date) },
+    scheduleFilter,
     {
       $setOnInsert: {
         doctor: doctorId,
+        doctorId: doctorId,
         date: String(date),
         slotDurationMinutes: duration,
         freeSlots: times.map((time) => ({ time })),
@@ -375,7 +381,7 @@ const ensureDaySchedule = async ({ doctorId, date, doctorDoc }) => {
     { upsert: true }
   );
 
-  history = await DoctorDaySchedule.findOne({ doctor: doctorId, date: String(date) });
+  history = await DoctorDaySchedule.findOne(scheduleFilter);
   return history;
 };
 
@@ -397,10 +403,13 @@ const createAppointmentBooking = async ({ patientId, doctorId, date, type, time 
   await ensureDaySchedule({ doctorId, date, doctorDoc: doctor });
 
   const apptId = new mongoose.Types.ObjectId();
+  const scheduleFilter = {
+    date: String(date),
+    $or: [{ doctor: doctorId }, { doctorId: doctorId }],
+  };
   const reserve = await DoctorDaySchedule.updateOne(
     {
-      doctor: doctorId,
-      date: String(date),
+      ...scheduleFilter,
       bookedSlots: { $not: { $elemMatch: { time: String(time) } } },
     },
     {
@@ -479,6 +488,49 @@ const createChatBooking = async ({ patientId, doctorId }) => {
     chatConnection,
     doctor,
     fee,
+  };
+};
+
+const findExistingBookingForTransaction = async (tx) => {
+  if (!tx) return null;
+
+  if (tx.bookingType === "chat") {
+    const chatConnection = await ChatConnection.findOne({
+      patient: tx.patient,
+      doctor: tx.doctor,
+      status: "active",
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!chatConnection) return null;
+
+    return {
+      bookingType: "chat",
+      chatConnection,
+      appointment: null,
+    };
+  }
+
+  const meta = tx.metadata || {};
+  const date = String(meta.date || "");
+  const time = String(meta.time || "");
+
+  if (!date || !time) return null;
+
+  const appointment = await Appointment.findOne({
+    patient: tx.patient,
+    doctor: tx.doctor,
+    date,
+    startTime: time,
+    status: "booked",
+  }).sort({ createdAt: -1 });
+
+  if (!appointment) return null;
+
+  return {
+    bookingType: "appointment",
+    appointment,
+    chatConnection: null,
   };
 };
 
@@ -655,6 +707,47 @@ exports.verifyRazorpayPayment = async (req, res) => {
     }
 
     if (!result?.ok) {
+      // Idempotency safety: if booking was already created in a previous attempt,
+      // attach it to this transaction and treat verification as success.
+      if (Number(result?.code) === 409) {
+        const existing = await findExistingBookingForTransaction(tx);
+        if (existing?.bookingType === "chat" && existing.chatConnection) {
+          tx.status = "paid";
+          tx.chatConnection = existing.chatConnection._id;
+          tx.razorpayPaymentId = String(razorpay_payment_id);
+          tx.razorpaySignature = String(razorpay_signature);
+          await tx.save();
+
+          return res.json({
+            success: true,
+            message: "Payment already processed and chat connection exists",
+            data: {
+              bookingType: "chat",
+              appointment: null,
+              chatConnection: existing.chatConnection.getPublicDetails(),
+            },
+          });
+        }
+
+        if (existing?.bookingType === "appointment" && existing.appointment) {
+          tx.status = "paid";
+          tx.appointment = existing.appointment._id;
+          tx.razorpayPaymentId = String(razorpay_payment_id);
+          tx.razorpaySignature = String(razorpay_signature);
+          await tx.save();
+
+          return res.json({
+            success: true,
+            message: "Payment already processed and appointment exists",
+            data: {
+              bookingType: "appointment",
+              appointment: existing.appointment.getPublicDetails(),
+              chatConnection: null,
+            },
+          });
+        }
+      }
+
       tx.status = "failed";
       tx.razorpayPaymentId = String(razorpay_payment_id);
       tx.razorpaySignature = String(razorpay_signature);
@@ -744,10 +837,13 @@ exports.rescheduleAppointment = async (req, res) => {
     await ensureDaySchedule({ doctorId, date: String(date), doctorDoc: doctor });
 
     // Reserve NEW slot first (atomic operation)
+    const scheduleFilter = {
+      date: String(date),
+      $or: [{ doctor: doctorId }, { doctorId: doctorId }],
+    };
     const reserve = await DoctorDaySchedule.updateOne(
       {
-        doctor: doctorId,
-        date: String(date),
+        ...scheduleFilter,
         bookedSlots: { $not: { $elemMatch: { time: String(time) } } },
       },
       {
@@ -781,7 +877,7 @@ exports.rescheduleAppointment = async (req, res) => {
     // Release OLD slot (best-effort)
     if (oldDate && oldStart) {
       await DoctorDaySchedule.updateOne(
-        { doctor: doctorId, date: String(oldDate) },
+        { date: String(oldDate), $or: [{ doctor: doctorId }, { doctorId: doctorId }] },
         { $pull: { bookedSlots: { time: String(oldStart) } } }
       );
     }
@@ -821,7 +917,7 @@ exports.cancelAppointment = async (req, res) => {
     // Release booked slot so doctor can rebook
     if (appt.doctor && appt.date && appt.startTime) {
       const releaseResult = await DoctorDaySchedule.updateOne(
-        { doctor: appt.doctor, date: String(appt.date) },
+        { date: String(appt.date), $or: [{ doctor: appt.doctor }, { doctorId: appt.doctor }] },
         { $pull: { bookedSlots: { time: String(appt.startTime) } } }
       );
       
@@ -1066,10 +1162,13 @@ exports.doctorRescheduleAppointment = async (req, res) => {
     await ensureDaySchedule({ doctorId, date: String(date), doctorDoc: doctor });
 
     // Reserve NEW slot first
+    const scheduleFilter = {
+      date: String(date),
+      $or: [{ doctor: doctorId }, { doctorId: doctorId }],
+    };
     const reserve = await DoctorDaySchedule.updateOne(
       {
-        doctor: doctorId,
-        date: String(date),
+        ...scheduleFilter,
         bookedSlots: { $not: { $elemMatch: { time: String(time) } } },
       },
       {
@@ -1102,7 +1201,7 @@ exports.doctorRescheduleAppointment = async (req, res) => {
     // Release OLD slot best-effort
     if (oldDate && oldStart) {
       await DoctorDaySchedule.updateOne(
-        { doctor: doctorId, date: String(oldDate) },
+        { date: String(oldDate), $or: [{ doctor: doctorId }, { doctorId: doctorId }] },
         { $pull: { bookedSlots: { time: String(oldStart) } } }
       );
     }

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const Admin = require('../Models/admin.model');
 const PendingVerification = require('../Models/pendingVerification.model');
-const { sendAdminCredentialsEmail, sendAdminPasswordResetOtpEmail } = require('../Services/mailService');
+const { sendAdminCredentialsEmail, sendAdminPasswordResetOtpEmail, getMailErrorResponse } = require('../Services/mailService');
 const {
   OTP_EXPIRES_MINUTES,
   RESEND_COOLDOWN_SECONDS,
@@ -124,7 +124,8 @@ const createAdmin = async (req, res) => {
     });
   } catch (error) {
     console.error('Create admin error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 
@@ -223,7 +224,8 @@ const sendAdminForgotPasswordOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Send admin forgot password OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 

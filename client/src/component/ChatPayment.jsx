@@ -34,14 +34,17 @@ const ChatPayment = () => {
 
   // Prevent multiple API calls
   const hasProcessed = useRef(false);
+  const paymentCompletedRef = useRef(false);
+  const redirectTimeoutRef = useRef(null);
 
   const processPayment = useCallback(async () => {
     //Stop duplicate calls
-    if (hasProcessed.current) return;
+    if (hasProcessed.current || paymentCompletedRef.current) return;
     hasProcessed.current = true;
 
     try {
       setProcessing(true);
+      setError(null);
       setStatusText("Loading Razorpay checkout...");
 
       const patientId = patient?.patient?._id || patient?._id;
@@ -81,31 +84,42 @@ const ChatPayment = () => {
         },
         handler: async function (response) {
           try {
+            if (paymentCompletedRef.current) return;
+
             setStatusText("Verifying payment...");
             const verifyRes = await axios.post(
               `${import.meta.env.VITE_API_URL}/appointments/verify-razorpay-payment`,
               response
             );
 
+            if (paymentCompletedRef.current) return;
+
             if (!verifyRes?.data?.success) {
               throw new Error(verifyRes?.data?.message || "Payment verification failed");
             }
 
+            paymentCompletedRef.current = true;
             setSuccess(true);
             setProcessing(false);
+            setError(null);
 
-            setTimeout(() => {
+            redirectTimeoutRef.current = window.setTimeout(() => {
               navigate("/patient/chats", {
+                replace: true,
                 state: { newConnection: verifyRes?.data?.data?.chatConnection || null },
               });
-            }, 1200);
+            }, 600);
           } catch (verifyError) {
+            if (paymentCompletedRef.current) return;
+
             setError(verifyError?.response?.data?.message || verifyError?.message || "Payment verification failed");
             setProcessing(false);
           }
         },
         modal: {
           ondismiss: () => {
+            if (paymentCompletedRef.current) return;
+
             setError("Payment was cancelled. Please try again.");
             setProcessing(false);
           },
@@ -132,6 +146,12 @@ const ChatPayment = () => {
     }
 
     processPayment();
+
+    return () => {
+      if (redirectTimeoutRef.current) {
+        window.clearTimeout(redirectTimeoutRef.current);
+      }
+    };
   }, [bookingData, navigate, processPayment]);
 
   if (!bookingData) return null;

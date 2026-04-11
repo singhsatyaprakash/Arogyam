@@ -3,10 +3,12 @@ import { DoctorContext } from "../contexts/DoctorContext";
 import axios from "axios";
 import { FaUserMd, FaSearch, FaComments } from "react-icons/fa";
 import { IoMdArrowRoundBack } from "react-icons/io";
+import { useNavigate } from "react-router-dom";
 import noProfileImage from "../assets/noProfile.webp";
 
 const DoctorChatList = ({ onSelectPatient, selectedConnectionId }) => {
   const { doctor } = useContext(DoctorContext);
+  const navigate = useNavigate();
   const [connectionList, setConnectionList] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ const DoctorChatList = ({ onSelectPatient, selectedConnectionId }) => {
       <div className="p-4 sm:p-5 border-b border-red-100 bg-gradient-to-r from-rose-50/90 to-red-50/90">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => navigate("/doctor/dashboard", { replace: true })}
             title="Go back"
             className="p-2 rounded-xl hover:bg-white transition"
           >

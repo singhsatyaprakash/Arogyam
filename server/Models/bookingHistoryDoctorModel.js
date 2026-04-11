@@ -42,6 +42,15 @@ const bookingHistoryDoctorSchema = new mongoose.Schema(
       index: true
     },
 
+    // Legacy collections and indexes still refer to doctorId, so we keep it in sync.
+    doctorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Doctor",
+      required: false,
+      index: true,
+      default: undefined
+    },
+
     // date for which the booking history is stored (YYYY-MM-DD)
     date: {
       type: String,

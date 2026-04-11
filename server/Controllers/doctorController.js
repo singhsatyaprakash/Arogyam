@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { doctorRescheduleAppointment } = require('./appointmentController');
 const ChatConnection = require('../Models/chatConnection.model');
-const { sendOtpEmail } = require('../Services/mailService');
+const { sendOtpEmail, getMailErrorResponse } = require('../Services/mailService');
 const {
   OTP_EXPIRES_MINUTES,
   RESEND_COOLDOWN_SECONDS,
@@ -126,6 +126,7 @@ const sendDoctorRegistrationOtp = async (req, res) => {
     if (!validation.ok) {
       return res.status(400).json({ success: false, message: validation.message });
     }
+    console.log("validation pass");
 
     const data = validation.data;
     const existingDoctor = await Doctor.findOne({ email: data.email });
@@ -173,7 +174,7 @@ const sendDoctorRegistrationOtp = async (req, res) => {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-
+    console.log("sending otp to email....")
     await sendOtpEmail({ to: data.email, name: data.name, role: 'doctor', otp });
 
     return res.status(200).json({
@@ -187,7 +188,8 @@ const sendDoctorRegistrationOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Send doctor registration OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 
@@ -233,7 +235,8 @@ const resendDoctorRegistrationOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Resend doctor registration OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 
@@ -457,7 +460,8 @@ const sendDoctorForgotPasswordOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Send doctor forgot password OTP error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    const mailError = getMailErrorResponse(error);
+    return res.status(mailError.status).json({ success: false, message: mailError.message });
   }
 };
 

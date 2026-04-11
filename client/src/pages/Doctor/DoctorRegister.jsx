@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import DoctorRegisterNavbar from "../../doctorComponent/DoctorRegisterNavbar";
 import DoctorPreviewModal from "../../doctorComponent/DoctorPreviewModal";
 import axios from "axios";
@@ -7,6 +7,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 const DoctorRegister = () => {
   const location = useLocation();
   const savedFormData = location.state?.formData;
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  useEffect(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("doctorToken");
+    localStorage.removeItem("role");
+  }, []);
   
   const [step, setStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
@@ -65,12 +72,12 @@ const DoctorRegister = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+    console.log("Form data on submit:", formData);
     try {
       const nameWithTitle = `${formData.title} ${formData.name}`;
-
+      // console.log("Submitting registration with name:", nameWithTitle);
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/doctors/register/send-otp`,
+        `${apiUrl}/doctors/register/send-otp`,
         {
           ...formData,
           name: nameWithTitle,
