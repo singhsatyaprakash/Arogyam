@@ -373,7 +373,7 @@ const DoctorBookingProcess = () => {
           </div>
 
           {/* About + Fee */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             {/* About */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm md:col-span-2">
               <h3 className="font-semibold text-gray-900 mb-2">About Doctor</h3>
@@ -486,48 +486,101 @@ const DoctorBookingProcess = () => {
             ) : (
               <>
                 {/* Date Selection */}
-                <div className="mt-5 bg-gradient-to-r from-emerald-50/70 to-cyan-50/60 border border-emerald-100 rounded-2xl p-4 flex flex-col gap-3">
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    {nextDates.map((d) => {
-                      const active = d === selectedDate;
-                      return (
+                <div className="mt-5 bg-gradient-to-r from-emerald-50/70 to-cyan-50/60 border border-emerald-100 rounded-2xl p-4 space-y-3">
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] items-start gap-3">
+                    <div className="space-y-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        {nextDates.map((d) => {
+                          const active = d === selectedDate;
+                          return (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => setSelectedDate(d)}
+                              className={[
+                                "whitespace-nowrap border rounded-full px-3 py-1.5 text-xs transition font-medium shrink-0",
+                                active
+                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                  : "bg-white text-gray-700 border-gray-200 hover:border-emerald-400",
+                              ].join(" ")}
+                            >
+                              {d === todayStr ? `Today (${prettyDate(d)})` : prettyDate(d)}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <label className="text-sm text-gray-700 font-medium">
+                          Select date
+                        </label>
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          min={todayStr}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
+                        />
+                      </div>
+
+                      <div className="inline-flex items-center gap-2 rounded-lg bg-white/80 border border-emerald-100 px-3 py-2 text-xs text-gray-600">
+                        <span className="font-medium text-gray-700">Selected:</span>
+                        <span>{selectedSlot?.time ? normalizeTime(selectedSlot.time) : "No slot"}</span>
+                        <span className="text-gray-400">|</span>
+                        <span>{mode}</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-white/90 border border-emerald-100 rounded-2xl p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                            Selected booking
+                          </p>
+                          <p className="text-sm font-semibold text-gray-900 mt-1 truncate">
+                            {selectedDate ? prettyDate(selectedDate) : "Pick a date"}
+                            {" • "}
+                            {selectedSlot?.time ? normalizeTime(selectedSlot.time) : "Select slot"}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {selectedSlot
+                              ? `Fee: ₹${Number(selectedSlot?.fee ?? doctor?.consultationFee?.[mode] ?? 0)}`
+                              : "Choose a slot to continue"}
+                          </p>
+                        </div>
+
                         <button
-                          key={d}
                           type="button"
-                          onClick={() => setSelectedDate(d)}
+                          onClick={handleProceed}
+                          disabled={!selectedSlot}
                           className={[
-                            "whitespace-nowrap border rounded-full px-3 py-1.5 text-xs transition font-medium",
-                            active
-                              ? "bg-emerald-600 text-white border-emerald-600"
-                              : "bg-white text-gray-700 border-gray-200 hover:border-emerald-400",
+                            "shrink-0 px-4 py-2.5 rounded-lg text-sm font-medium transition",
+                            selectedSlot
+                              ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                              : "bg-gray-100 text-gray-400 cursor-not-allowed",
                           ].join(" ")}
                         >
-                          {d === todayStr ? `Today (${prettyDate(d)})` : prettyDate(d)}
+                          Proceed
                         </button>
-                      );
-                    })}
+
+                        <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium hidden sm:inline-flex">
+                          {mode}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                    <label className="text-sm text-gray-700 font-medium">
-                      Select date
-                    </label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      min={todayStr}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
-                    />
+                  <div className="flex items-center justify-between gap-3 text-xs text-gray-500 border-t border-emerald-100 pt-3">
+                    <span>{mode} consultation slots</span>
+                    <span>{selectedDate}</span>
                   </div>
-                </div>
 
                 {/* Slots UI */}
-                <div className="mt-5">
-                  <div className="flex items-center justify-between">
+                <div className="mt-1">
+                  <div className="flex items-center justify-between gap-3">
                     <h4 className="font-medium text-gray-700">Available slots</h4>
                     <span className="text-xs text-gray-500">
-                      {mode} • {selectedDate}
+                      {allTimes?.length ?? 0} slots
                     </span>
                   </div>
 
@@ -550,7 +603,7 @@ const DoctorBookingProcess = () => {
                   {!availabilityLoading &&
                     !availabilityError &&
                     (allTimes?.length ?? 0) > 0 && (
-                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+                      <div className="mt-3 max-h-[22rem] overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-transparent">
                         {allTimes.map((time) => {
                           const isBooked = bookedTimes.has(time);
                           const freeSlot = freeSlotByTime.get(time);
@@ -606,25 +659,8 @@ const DoctorBookingProcess = () => {
                       </div>
                     )}
 
-                  {selectedSlot && (
-                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-emerald-200 rounded-xl p-3.5 bg-emerald-50">
-                      <div className="text-sm text-gray-700">
-                        Selected:{" "}
-                        <span className="font-medium">{selectedDate}</span> at{" "}
-                        <span className="font-medium">
-                          {normalizeTime(selectedSlot?.time)}
-                        </span>{" "}
-                        <span className="text-gray-500">({mode})</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleProceed}
-                        className="px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
-                      >
-                        Proceed
-                      </button>
-                    </div>
-                  )}
+                </div>
+
                 </div>
               </>
             )}
