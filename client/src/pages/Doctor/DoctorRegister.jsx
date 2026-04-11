@@ -2,15 +2,18 @@ import { useState, useRef } from "react";
 import DoctorRegisterNavbar from "../../doctorComponent/DoctorRegisterNavbar";
 import DoctorPreviewModal from "../../doctorComponent/DoctorPreviewModal";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const DoctorRegister = () => {
+  const location = useLocation();
+  const savedFormData = location.state?.formData;
+  
   const [step, setStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const navigate=useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(savedFormData || {
     title: "Dr.",
     name: "",
     email: "",
@@ -67,7 +70,7 @@ const DoctorRegister = () => {
       const nameWithTitle = `${formData.title} ${formData.name}`;
 
       await axios.post(
-        `${import.meta.env.VITE_API_URL}/doctors/register`,
+        `${import.meta.env.VITE_API_URL}/doctors/register/send-otp`,
         {
           ...formData,
           name: nameWithTitle,
@@ -78,9 +81,17 @@ const DoctorRegister = () => {
         }
       );
 
-      alert("Registration successful!");
-      //navigate("/verify-email", { state: { email: formData.email } }); 
-      navigate("/");
+      sessionStorage.setItem('pendingOtpVerification', JSON.stringify({
+        role: 'doctor',
+        email: formData.email
+      }));
+      sessionStorage.setItem('registrationFormData', JSON.stringify(formData));
+      navigate('/verify-otp', {
+        state: {
+          role: 'doctor',
+          email: formData.email
+        }
+      });
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Registration failed");

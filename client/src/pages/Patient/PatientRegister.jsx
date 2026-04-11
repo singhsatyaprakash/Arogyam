@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import PatientRegisterNavbar from "./PatientRegisterNavbar";
 import PatientFooter from "../../patientComponent/PatientFooter";
 import { FaUser, FaEnvelope, FaPhone, FaBirthdayCake, FaLock, FaHeartbeat } from "react-icons/fa";
@@ -7,7 +7,10 @@ import axios from "axios";
 import Footer from "../../component/Footer";
 
 const PatientRegister = () => {
-  const [form, setForm] = useState({
+  const location = useLocation();
+  const savedFormData = location.state?.formData;
+  
+  const [form, setForm] = useState(savedFormData || {
     name: '',
     email: '',
     phone: '',
@@ -58,7 +61,7 @@ const PatientRegister = () => {
       return;
     }
     try {
-      const response=await axios.post(`${import.meta.env.VITE_API_URL}/patients/register`, {
+      const response=await axios.post(`${import.meta.env.VITE_API_URL}/patients/register/send-otp`, {
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -70,12 +73,20 @@ const PatientRegister = () => {
         alert(response.data?.message || 'Registration failed');
         return;
       }
-      alert('Registration successful! Please log in.');
-
-      navigate("/");
+      sessionStorage.setItem('pendingOtpVerification', JSON.stringify({
+        role: 'patient',
+        email: form.email
+      }));
+      sessionStorage.setItem('registrationFormData', JSON.stringify(form));
+      navigate('/verify-otp', {
+        state: {
+          role: 'patient',
+          email: form.email
+        }
+      });
     } catch (err) {
       console.error('Register error', err);
-      alert('Registration error');
+      alert(err?.response?.data?.message || 'Registration error');
     }
   };
 

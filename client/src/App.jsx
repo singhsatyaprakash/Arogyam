@@ -38,6 +38,7 @@ import CaseStudies from "./pages/Doctor/CaseStudies";
 import ShareIdeas from "./pages/Doctor/ShareIdeas";
 import Settings from "./pages/Doctor/Settings";
 import DailyRoutinePatient from "./pages/Patient/DailyRoutinePatient.jsx";
+import OTPVerification from "./component/OTPVerification";
 
 // import VerifyEmailPage from "./component/VerifyEmailPage";
 
@@ -55,6 +56,7 @@ const App = () => {
 
         {/* patient routes */}
         <Route path="/register/patient" element={<PatientRegister />} />
+        <Route path="/verify-otp" element={<OTPVerification />} />
         <Route path="/patient/dashboard" element={<PatientProtectedWrapper><PatientDashboard /></PatientProtectedWrapper>} />
         <Route path="/patient/appointments" element={<PatientProtectedWrapper><AppointmentBooking /></PatientProtectedWrapper>} />
         <Route path="/patient/chat-payment" element={<PatientProtectedWrapper><ChatPayment /></PatientProtectedWrapper>} />
