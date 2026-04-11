@@ -14,6 +14,8 @@ const {
 } = require('../Services/otpService');
 
 const MAX_OTP_ATTEMPTS = 5;
+const REGISTRATION_OTP_PURPOSE = 'registration';
+const PASSWORD_RESET_OTP_PURPOSE = 'password_reset';
 
 const validatePatientRegistrationPayload = (payload = {}) => {
   const { name, email, phone, password, age, gender } = payload;
@@ -58,7 +60,11 @@ const sendPatientRegistrationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already exists' });
     }
 
-    const existingPending = await PendingVerification.findOne({ email: data.email, role: 'patient' });
+    const existingPending = await PendingVerification.findOne({
+      email: data.email,
+      role: 'patient',
+      purpose: REGISTRATION_OTP_PURPOSE
+    });
     if (existingPending && new Date(existingPending.resendAvailableAt) > new Date()) {
       const waitSeconds = Math.ceil((new Date(existingPending.resendAvailableAt).getTime() - Date.now()) / 1000);
       return res.status(429).json({
@@ -71,7 +77,7 @@ const sendPatientRegistrationOtp = async (req, res) => {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     await PendingVerification.findOneAndUpdate(
-      { email: data.email, role: 'patient' },
+      { email: data.email, role: 'patient', purpose: REGISTRATION_OTP_PURPOSE },
       {
         $set: {
           otpHash: hashOtp(otp),
@@ -115,7 +121,11 @@ const resendPatientRegistrationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email is required' });
     }
 
-    const pending = await PendingVerification.findOne({ email, role: 'patient' });
+    const pending = await PendingVerification.findOne({
+      email,
+      role: 'patient',
+      purpose: REGISTRATION_OTP_PURPOSE
+    });
     if (!pending) {
       return res.status(404).json({ success: false, message: 'No pending verification found for this email' });
     }
@@ -162,7 +172,11 @@ const verifyPatientRegistrationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and OTP are required' });
     }
 
-    const pending = await PendingVerification.findOne({ email, role: 'patient' });
+    const pending = await PendingVerification.findOne({
+      email,
+      role: 'patient',
+      purpose: REGISTRATION_OTP_PURPOSE
+    });
     if (!pending) {
       return res.status(404).json({ success: false, message: 'No pending verification found' });
     }
@@ -368,11 +382,136 @@ const logoutPatient = async (req, res) => {
   }
 };
 
+const sendPatientForgotPasswordOtp = async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const patient = await Patient.findOne({ email });
+    if (!patient) {
+      return res.status(404).json({ success: false, message: 'No patient account found with this email' });
+    }
+
+    const existingPending = await PendingVerification.findOne({
+      email,
+      role: 'patient',
+      purpose: PASSWORD_RESET_OTP_PURPOSE
+    });
+    if (existingPending && new Date(existingPending.resendAvailableAt) > new Date()) {
+      const waitSeconds = Math.ceil((new Date(existingPending.resendAvailableAt).getTime() - Date.now()) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSeconds}s before requesting another OTP`
+      });
+    }
+
+    const otp = generateOtp();
+    await PendingVerification.findOneAndUpdate(
+      { email, role: 'patient', purpose: PASSWORD_RESET_OTP_PURPOSE },
+      {
+        $set: {
+          otpHash: hashOtp(otp),
+          otpExpiresAt: getOtpExpiryDate(),
+          resendAvailableAt: getResendAvailableDate(),
+          failedAttempts: 0,
+          payload: {}
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    await sendOtpEmail({
+      to: email,
+      name: patient.name,
+      role: 'patient',
+      otp,
+      purpose: PASSWORD_RESET_OTP_PURPOSE
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email',
+      data: {
+        email,
+        expiresInMinutes: OTP_EXPIRES_MINUTES,
+        resendInSeconds: RESEND_COOLDOWN_SECONDS
+      }
+    });
+  } catch (error) {
+    console.error('Send patient forgot password OTP error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+const resetPatientPassword = async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const newPassword = String(req.body?.newPassword || '');
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const pending = await PendingVerification.findOne({
+      email,
+      role: 'patient',
+      purpose: PASSWORD_RESET_OTP_PURPOSE
+    });
+    if (!pending) {
+      return res.status(404).json({ success: false, message: 'No pending password reset found' });
+    }
+
+    if (new Date(pending.otpExpiresAt) < new Date()) {
+      await PendingVerification.deleteOne({ _id: pending._id });
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new OTP' });
+    }
+
+    if (hashOtp(otp) !== pending.otpHash) {
+      pending.failedAttempts = (pending.failedAttempts || 0) + 1;
+      if (pending.failedAttempts >= MAX_OTP_ATTEMPTS) {
+        await PendingVerification.deleteOne({ _id: pending._id });
+        return res.status(400).json({ success: false, message: 'Too many invalid attempts. Please request a new OTP' });
+      }
+      await pending.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    const patient = await Patient.findOne({ email });
+    if (!patient) {
+      await PendingVerification.deleteOne({ _id: pending._id });
+      return res.status(404).json({ success: false, message: 'Patient not found' });
+    }
+
+    patient.password = await bcrypt.hash(newPassword, 10);
+    patient.token = null;
+    await patient.save();
+
+    await PendingVerification.deleteOne({ _id: pending._id });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password updated successfully. Please login again.'
+    });
+  } catch (error) {
+    console.error('Reset patient password error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   registerPatient,
   sendPatientRegistrationOtp,
   resendPatientRegistrationOtp,
   verifyPatientRegistrationOtp,
+  sendPatientForgotPasswordOtp,
+  resetPatientPassword,
   loginPatient,
   // getPatientProfile,
   // logoutPatient,

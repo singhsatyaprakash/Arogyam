@@ -15,6 +15,13 @@ const pendingVerificationSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    purpose: {
+      type: String,
+      enum: ['registration', 'password_reset'],
+      required: true,
+      default: 'registration',
+      index: true
+    },
     otpHash: {
       type: String,
       required: true
@@ -39,7 +46,7 @@ const pendingVerificationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-pendingVerificationSchema.index({ email: 1, role: 1 }, { unique: true });
+pendingVerificationSchema.index({ email: 1, role: 1, purpose: 1 }, { unique: true });
 pendingVerificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 });
 
 module.exports = mongoose.model('PendingVerification', pendingVerificationSchema);

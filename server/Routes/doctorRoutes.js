@@ -9,6 +9,8 @@ router.post('/register/send-otp', doctorController.sendDoctorRegistrationOtp);
 router.post('/register/resend-otp', doctorController.resendDoctorRegistrationOtp);
 router.post('/register/verify-otp', doctorController.verifyDoctorRegistrationOtp);
 router.post('/login', doctorMiddleware.doctorLoginLimiter, doctorController.loginDoctor);
+router.post('/forgot-password/send-otp', doctorController.sendDoctorForgotPasswordOtp);
+router.post('/forgot-password/reset', doctorController.resetDoctorPassword);
 
 router.post('/getConnectionsList', doctorController.getConnectionsList);
 

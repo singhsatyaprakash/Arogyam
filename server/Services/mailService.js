@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 let transporter;
-
+// we can use Amazon SES for email service at high demand user level...
 const getTransporter = () => {
   if (transporter) return transporter;
 
@@ -32,7 +32,7 @@ const getTransporter = () => {
   throw new Error('Email service is not configured. Set SMTP_* or EMAIL_USER/EMAIL_PASS env vars.');
 };
 
-const sendOtpEmail = async ({ to, name, role, otp }) => {
+const sendOtpEmail = async ({ to, name, role, otp, purpose = 'registration' }) => {
   const safeName = name || 'User';
   const appName = process.env.APP_NAME || 'Arogyam';
   const from = process.env.MAIL_FROM || process.env.SMTP_USER || process.env.EMAIL_USER;
@@ -43,13 +43,22 @@ const sendOtpEmail = async ({ to, name, role, otp }) => {
 
   const transporterInstance = getTransporter();
 
+  const isPasswordReset = purpose === 'password_reset';
+  const heading = isPasswordReset ? `${appName} Password Reset OTP` : `${appName} Email Verification`;
+  const roleText = role === 'doctor' ? 'doctor' : 'patient';
+  const otpText = isPasswordReset
+    ? `Your OTP for ${roleText} password reset is:`
+    : `Your OTP for ${roleText} registration is:`;
+  const actionText = isPasswordReset ? 'reset your password' : 'complete your registration';
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #0f766e;">${appName} Email Verification</h2>
+      <h2 style="color: #0f766e;">${heading}</h2>
       <p>Hello ${safeName},</p>
-      <p>Your OTP for ${role} registration is:</p>
+      <p>${otpText}</p>
       <div style="font-size: 28px; font-weight: 700; letter-spacing: 8px; color: #111827; margin: 16px 0;">${otp}</div>
       <p>This OTP will expire in 10 minutes.</p>
+      <p>Use this OTP to ${actionText} in ${appName}.</p>
       <p>If you did not request this, please ignore this email.</p>
     </div>
   `;
@@ -57,9 +66,9 @@ const sendOtpEmail = async ({ to, name, role, otp }) => {
   await transporterInstance.sendMail({
     from,
     to,
-    subject: `${appName} OTP Verification`,
+    subject: isPasswordReset ? `${appName} Password Reset OTP` : `${appName} OTP Verification`,
     html,
-    text: `Hello ${safeName}, your OTP is ${otp}. It is valid for 10 minutes.`
+    text: `Hello ${safeName}, your OTP is ${otp}. It is valid for 10 minutes. Use it to ${actionText}.`
   });
 };
 
